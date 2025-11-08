@@ -47,8 +47,7 @@ def login():
                 # [!!!] (수정) 세션에 'pending_booking'이 있는지 확인 [!!!]
                 if 'pending_booking' in session:
                     # (TODO: '/passenger_info' 페이지의 URL로 변경해야 함)
-                    flash('로그인되었습니다. 탑승객 정보를 입력하세요. (구현 필요)')
-                    next_url = url_for('main.home') # (임시)
+                    next_url = url_for('booking.passenger_info') # (임시)
                 else:
                     next_url = url_for('main.home')
                 
@@ -110,6 +109,8 @@ def register():
         password = request.form.get('password')
         password_confirm = request.form.get('password_confirm')
         name = request.form.get('name')
+        surname_en = request.form.get('reg_surname_en')
+        given_name_en = request.form.get('reg_given_name_en')
         nationality = request.form.get('nationality')
         # [!!!] (수정) 생년월일을 3개의 <select>에서 받음 [!!!]
         dob_year = request.form.get('dob_year')
@@ -121,7 +122,10 @@ def register():
         error = None
 
         # 2. 유효성 검사
-        if not all([member_id, password, password_confirm, name, nationality, dob_year, dob_month, dob_day, phone, email]):
+        if not all([member_id, password, password_confirm, 
+                    surname_en, given_name_en, 
+                    name, nationality, dob_year, 
+                    dob_month, dob_day, phone, email]):
             error = '모든 필드를 입력해야 합니다.'
         
         elif password != password_confirm:
@@ -146,10 +150,13 @@ def register():
         # 3. DB에 저장
         if error is None:
             try:
+                full_name_en = f"{surname_en.upper()} {given_name_en.upper()}"
+
                 new_user = Member(
                     Member_ID=member_id,
                     passwd=password, # (평문 저장)
                     Name=name,
+                    eng_Name=full_name_en,
                     Nationality=nationality,
                     Date_OF_Birth=dob_date, # (조합된 날짜)
                     Phone=phone,

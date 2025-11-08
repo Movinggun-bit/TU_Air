@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}탑승객 정보 입력 - TU Air{% endblock %}
+
+{% block content %}
+<div class="register-container"> <h1 class="register-title">탑승객 정보 입력</h1>
+
+    <form class="register-form" method="POST" 
+          action="{{ url_for('booking.passenger_info') }}"
+          id="passenger_form"
+          data-pax-count="{{ booking_info.passenger_count | default(0) }}">
+        
+        <div class="passenger-form-box"> <h2 class="pax-header">예약자 정보</h2>
+            {% if g.user and not is_guest %}
+                <div class="booker-info-box">
+                    <p><strong>이름:</strong> {{ g.user.Name }}</p>
+                    <p><strong>이메일:</strong> {{ g.user.Email }}</p>
+                    <p><strong>휴대전화:</strong> {{ g.user.Phone }}</p>
+                    <small>(예약자 정보는 회원님의 정보로 자동 입력됩니다.)</small>
+                </div>
+            {% else %}
+                <div class="form-group-register">
+                    <label for="guest_name">이름</label>
+                    <input type="text" id="guest_name" name="guest_name" class="form-input-register" required>
+                </div>
+                <div class="form-group-register">
+                    <label for="guest_nationality">국적</label>
+                    <input type="text" id="guest_nationality" name="guest_nationality" class="form-input-register" placeholder="예: 대한민국" required>
+                </div>
+                <div class="form-group-register">
+                    <label>생년월일</label>
+                    <div class="dob-wrapper">
+                        <select id="guest_dob_year" name="guest_dob_year" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>출생 연도</option>
+                        </select>
+                        <select id="guest_dob_month" name="guest_dob_month" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>월</option>
+                        </select>
+                        <select id="guest_dob_day" name="guest_dob_day" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>일</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group-register">
+                    <label for="guest_email">이메일</label>
+                    <input type="email" id="guest_email" name="guest_email" class="form-input-register" required>
+                </div>
+                <div class="form-group-register">
+                    <label for="guest_phone">휴대전화</label>
+                    <input type="tel" id="guest_phone" name="guest_phone" class="form-input-register" required>
+                </div>
+            {% endif %}
+        </div>
+
+        {% for i in range(booking_info.passenger_count) %}
+        <div class="passenger-form-box">
+            
+            <button type="button" class="pax-accordion-header {% if i == 0 %}active{% endif %}">
+                <h2>인원 {{ i + 1 }}</h2>
+                <span class="pax-arrow"></span>
+            </button>
+            
+            <div class="pax-accordion-content {% if i == 0 %}active{% endif %}">
+                <small class="required-note">* 는 필수항목입니다.</small>
+                
+                <div class="form-group-register">
+                    <label>성별 *</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="pax_gender_{{ i }}" value="M" checked> 남자</label>
+                        <label><input type="radio" name="pax_gender_{{ i }}" value="F"> 여자</label>
+                    </div>
+                </div>
+                
+                <div class="form-group-register">
+                    <label>이름 *</label>
+                    <div class="pax-name-wrapper">
+                        <div class="form-group-register">
+                            <input type="text" name="pax_surname_en" class="form-input-register" placeholder="성 (영문)" required>
+                        </div>
+                        <div class="form-group-register">
+                            <input type="text" name="pax_given_name_en" class="form-input-register" placeholder="이름 (영문)" required>
+                        </div>
+                    </div>
+                    <small class="help-text">※ 항공권 탑승자 성명과 여권의 영문 성명이 상이한 경우 탑승이 거절될 수 있습니다.</small>
+                </div>
+
+                <div class="form-group-register">
+                    <label>생년월일 *</label>
+                    <div class="dob-wrapper">
+                        <select id="pax_dob_year_{{ i }}" name="pax_dob_year" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>연도</option>
+                        </select>
+                        <select id="pax_dob_month_{{ i }}" name="pax_dob_month" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>월</option>
+                        </select>
+                        <select id="pax_dob_day_{{ i }}" name="pax_dob_day" class="form-input-register dob-select" required>
+                            <option value="" disabled selected>일</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="register-divider">
+                <div class="form-group-register">
+                    <label>회원아이디 (탑승객)
+                        <span class="tooltip-icon" data-tooltip="예약 시 마일리지가 적립됩니다">?</span>
+                    </label>
+                    <div class="pax-membership-wrapper">
+                        <select name="pax_airline" class="form-input-register">
+                            <option value="NONE" selected>선택 안함</option>
+                            <option value="TU_AIR">TU_Air</option>
+                            </select>
+                        <input type="text" name="pax_member_id_text" class="form-input-register" placeholder="회원 아이디 입력">
+                    </div>
+                    <small class="help-text" style="color: #555; margin-top: 5px;">
+                        ※ TU_Air 선택 시 탑승객의 영문 이름, 생년월일이 회원 정보와 일치해야 합니다.
+                    </small>
+                </div>
+
+            </div> </div> {% endfor %}
+        
+        <div class="total-summary-final">
+            총 결제 금액: <strong>KRW {{ "{:,.0f}".format(booking_info.total_price) }}</strong>
+        </div>
+
+        <button type="submit" class="btn-register-submit" id="btn_submit_passengers">다음 (결제)</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+
+    // (DOB Select 생성 함수 - 수정 없음)
+    function setupDOBSelects(yearId, monthId, dayId) {
+        const yearSelect = document.getElementById(yearId);
+        const monthSelect = document.getElementById(monthId);
+        const daySelect = document.getElementById(dayId);
+        if (!yearSelect) return; 
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear; i >= 1920; i--) { yearSelect.add(new Option(i + "년", i)); }
+        for (let i = 1; i <= 12; i++) { monthSelect.add(new Option(i + "월", i)); }
+        function populateDays(daysInMonth) {
+            daySelect.innerHTML = '<option value="" disabled selected>일</option>';
+            for (let i = 1; i <= daysInMonth; i++) { daySelect.add(new Option(i + "일", i)); }
+        }
+        populateDays(31);
+        function updateDays() {
+            const year = parseInt(yearSelect.value);
+            const month = parseInt(monthSelect.value);
+            if (year && month) {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                populateDays(daysInMonth);
+            }
+        }
+        yearSelect.addEventListener('change', updateDays);
+        monthSelect.addEventListener('change', updateDays);
+    }
+
+    // (V13의 data-* 속성 읽기 - 수정 없음)
+    const paxForm = document.getElementById('passenger_form');
+    if (paxForm) {
+        // [!!!] (R1) 비회원 예약자 DOB Select 초기화 [!!!]
+        if (document.getElementById('guest_dob_year')) {
+            setupDOBSelects('guest_dob_year', 'guest_dob_month', 'guest_dob_day');
+        }
+
+        // (탑승객 수만큼 DOB Select를 각각 초기화)
+        const paxCount = parseInt(paxForm.dataset.paxCount) || 0; 
+        for (let i = 0; i < paxCount; i++) {
+            setupDOBSelects(`pax_dob_year_${i}`, `pax_dob_month_${i}`, `pax_dob_day_${i}`);
+        }
+    }
+
+    // [!!!] (R4) 아코디언 JS 로직 (신규) [!!!]
+    const accordionHeaders = document.querySelectorAll('.pax-accordion-header');
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            // (1. 클릭된 헤더의 'active' 클래스 토글)
+            this.classList.toggle('active');
+            
+            // (2. 해당 콘텐츠 패널 찾기 및 'active' 토글)
+            const content = this.nextElementSibling;
+            if (content && content.classList.contains('pax-accordion-content')) {
+                content.classList.toggle('active');
+            }
+        });
+    });
+
+    // [!!!] (R2/R3) AJAX 유효성 검사 (신규) [!!!]
+    const submitButton = document.getElementById('btn_submit_passengers');
+    
+    // [!!!] (수정) formElements 대신 querySelectorAll을 사용하여 NodeList를 캐시 [!!!]
+    const airlineSelects = paxForm.querySelectorAll('select[name="pax_airline"]');
+    const memberIdInputs = paxForm.querySelectorAll('input[name="pax_member_id_text"]');
+    const surnameInputs = paxForm.querySelectorAll('input[name="pax_surname_en"]');
+    const givenNameInputs = paxForm.querySelectorAll('input[name="pax_given_name_en"]');
+    const yearSelects = paxForm.querySelectorAll('select[name="pax_dob_year"]');
+    const monthSelects = paxForm.querySelectorAll('select[name="pax_dob_month"]');
+    const daySelects = paxForm.querySelectorAll('select[name="pax_dob_day"]');
+
+    // [!!!] (신규) 4. 회원번호(항공사) 선택에 따른 아이디 입력 필드 활성화/비활성화 [!!!]
+    
+    /**
+     * 항공사 선택(select)의 값에 따라 회원 아이디 입력(input)을 토글하는 함수
+     * @param {HTMLSelectElement} selectElement - 항공사 <select>
+     * @param {HTMLInputElement} inputElement - 회원 아이디 <input>
+     */
+    function toggleMemberIdInput(selectElement, inputElement) {
+        if (selectElement.value === 'TU_AIR') {
+            // 'TU_Air' 선택 시: 활성화
+            inputElement.disabled = false;
+            inputElement.placeholder = "회원 아이디 입력";
+            inputElement.classList.remove('disabled');
+        } else {
+            // '선택 안함' 또는 다른 항공사 선택 시: 비활성화 및 초기화
+            inputElement.disabled = true;
+            inputElement.value = ''; // (값 초기화)
+            inputElement.placeholder = "선택 안함";
+            inputElement.classList.add('disabled');
+        }
+    }
+
+    // (페이지 로드 시, 모든 탑승객 폼에 대해 한 번 실행)
+    airlineSelects.forEach((select, index) => {
+        const input = memberIdInputs[index];
+        if (input) {
+            // (1) 즉시 실행
+            toggleMemberIdInput(select, input);
+            
+            // (2) 변경 시마다 실행되도록 리스너 등록
+            select.addEventListener('change', () => {
+                toggleMemberIdInput(select, input);
+            });
+        }
+    });
+
+    // (탑승객 1명을 검증하는 비동기 함수)
+    async function validatePassenger(index) {
+        const airline = airlineSelects[index].value;
+        const memberId = memberIdInputs[index].value.trim();
+
+        // (1. "선택 안함"이거나, "TU_Air"가 아닌 경우, 또는 ID를 입력 안 한 경우 -> 통과)
+        if (airline !== 'TU_AIR' || !memberId) {
+            return { valid: true };
+        }
+        
+        // (2. "TU_Air"이고 ID가 입력된 경우 -> 서버 검증)
+        const data = {
+            member_id: memberId,
+            surname_en: surnameInputs[index].value,
+            given_name_en: givenNameInputs[index].value,
+            dob_year: yearSelects[index].value,
+            dob_month: monthSelects[index].value,
+            dob_day: daySelects[index].value
+        };
+
+        try {
+            const response = await fetch("{{ url_for('booking.validate_passenger') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                return result; 
+            } else {
+                return { valid: false, message: result.message || '서버 검증 중 오류가 발생했습니다.' };
+            }
+        } catch (error) {
+            return { valid: false, message: '네트워크 오류로 검증에 실패했습니다.' };
+        }
+    }
+
+    // (폼 제출 이벤트 가로채기)
+    paxForm.addEventListener('submit', async function(event) {
+        event.preventDefault(); // (일단 폼 제출을 중단)
+        submitButton.disabled = true;
+        submitButton.textContent = '검증 중...';
+
+        const paxCount = parseInt(paxForm.dataset.paxCount) || 0;
+
+        try {
+            // (2. 한 명씩 순차적으로 검증)
+            for (let i = 0; i < paxCount; i++) {
+                const result = await validatePassenger(i);
+                
+                // (3. 실패 시 즉시 중단 및 alert)
+                if (!result.valid) {
+                    alert(result.message); // (이것이 떠야 합니다)
+                    submitButton.disabled = false;
+                    submitButton.textContent = '다음 (결제)';
+                    return; // (submit 핸들러 종료)
+                }
+            }
+            
+            // (4. for 루프가 무사히 끝나면 (모두 valid), 폼 제출)
+            paxForm.submit();
+
+        } catch (error) {
+            // (validatePassenger 또는 for 루프 자체의 오류)
+            console.error("Validation Process Error:", error);
+            alert('검증 프로세스 중 예기치 않은 오류가 발생했습니다.');
+            submitButton.disabled = false;
+            submitButton.textContent = '다음 (결제)';
+        }
+    });
+});
+</script>
+{% endblock %}

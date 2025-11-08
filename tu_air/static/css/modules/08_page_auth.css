@@ -275,3 +275,184 @@
     font-size: 16px;
     font-weight: bold;
 }
+
+/* --- 12. 탑승객 정보 (passenger_info.html) 스타일 --- */
+
+/* (회원 예약자 정보 표시 박스) */
+.booker-info-box {
+    background-color: #f4f7f6;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+}
+.booker-info-box p {
+    margin: 8px 0;
+    font-size: 16px;
+}
+.booker-info-box small {
+    font-size: 14px;
+    color: #555;
+    margin-top: 10px;
+    display: block;
+}
+
+/* (탑승객 1, 2... 구분 박스) */
+.passenger-form-box {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 25px 30px;
+    margin-bottom: 20px;
+}
+
+/* (아코디언 헤더 스타일) */
+.pax-header {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 25px 0;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* (최종 결제 금액 요약) */
+.total-summary-final {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: right;
+    font-size: 18px;
+}
+.total-summary-final strong {
+    font-size: 24px;
+    font-weight: 700;
+    color: #D90429; /* (빨간색) */
+    margin-left: 15px;
+}
+.pax-accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 2px solid #eee;
+    padding: 0 0 10px 0;
+    margin: 0 0 25px 0;
+    cursor: pointer;
+    text-align: left;
+}
+.pax-accordion-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+.pax-arrow {
+    width: 10px;
+    height: 10px;
+    border-left: 2px solid #555;
+    border-bottom: 2px solid #555;
+    transform: rotate(-45deg); /* (아래 화살표) */
+    transition: transform 0.3s ease;
+    margin-right: 5px;
+}
+.pax-accordion-header.active .pax-arrow {
+    transform: rotate(135deg); /* (위 화살표) */
+    margin-top: 5px;
+}
+.pax-accordion-content {
+    display: none; /* (기본 숨김) */
+    overflow: hidden;
+}
+.pax-accordion-content.active {
+    display: block; /* (활성 시 보임) */
+}
+.required-note {
+    font-size: 13px;
+    color: #555;
+    display: block;
+    margin-bottom: 20px;
+}
+.help-text {
+    font-size: 13px;
+    color: #D90429; /* (빨간색 경고) */
+    margin-top: 5px;
+}
+
+/* [!!!] (R3) 영문 성/이름 래퍼 (신규) [!!!] */
+.pax-name-wrapper {
+    display: flex;
+    gap: 15px;
+}
+.pax-name-wrapper .form-group-register {
+    flex: 1;
+    margin-bottom: 0; /* (래퍼가 여백을 가짐) */
+}
+.pax-name-wrapper .form-group-register label {
+    display: none; /* (상위 레이블이 있으므로 숨김) */
+}
+/* [!!!] (R1) 탑승객 회원번호 래퍼 (신규) [!!!] */
+.pax-membership-wrapper {
+    display: flex;
+    gap: 15px;
+}
+.pax-membership-wrapper .form-input-register:first-child {
+    flex: 1; /* (Select) */
+}
+.pax-membership-wrapper .form-input-register:last-child {
+    flex: 2; /* (Input) */
+}
+/* [!!!] (신규) 비활성화된 입력 필드 스타일 [!!!] */
+.pax-membership-wrapper .form-input-register.disabled {
+    background-color: #f4f7f6; /* (읽기 전용 필드 배경색) */
+    color: #777;
+    cursor: not-allowed;
+}
+/* --- 13. 툴팁(Tooltip) 아이콘 스타일 (신규) --- */
+.tooltip-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    line-height: 16px; /* (텍스트 '?'를 수직 중앙 정렬) */
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+    background-color: #aaa;
+    border-radius: 50%;
+    margin-left: 5px;
+    cursor: help;
+    position: relative; /* (툴팁의 기준점이 됨) */
+    vertical-align: middle; /* (라벨 텍스트와 높이 맞춤) */
+}
+
+/* (툴팁 메시지 박스 - 기본 상태: 숨김) */
+.tooltip-icon::after {
+    content: attr(data-tooltip); /* (HTML의 'data-tooltip' 속성값을 가져옴) */
+    position: absolute;
+    bottom: 130%; /* (아이콘의 살짝 위쪽에 표시) */
+    left: 50%;
+    transform: translateX(-50%); /* (가운데 정렬) */
+    
+    background-color: #333; /* (어두운 배경) */
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap; /* (메시지가 줄바꿈되지 않도록) */
+    
+    /* (애니메이션을 위한 숨김 처리) */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10;
+}
+
+/* (아이콘에 마우스를 올렸을 때 '::after'를 표시) */
+.tooltip-icon:hover::after {
+    visibility: visible;
+    opacity: 1;
+}

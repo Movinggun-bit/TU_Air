@@ -113,7 +113,7 @@
                         <div class="flight-select-col">
                             <input type="radio" name="outbound_flight"
                                    value="{{ flight.Flight_ID }}|{{ flight.Price | float }}"
-                                   data-price="{{ flight.Price | float }}" required>
+                                   data-price="{{ flight.Price | float }}">
                             <span class="radio-custom"></span>
                         </div>
                     </label>
@@ -164,7 +164,7 @@
                         <div class="flight-select-col">
                             <input type="radio" name="inbound_flight"
                                    value="{{ flight.Flight_ID }}|{{ flight.Price | float }}"
-                                   data-price="{{ flight.Price | float }}" required>
+                                   data-price="{{ flight.Price | float }}">
                             <span class="radio-custom"></span>
                         </div>
                     </label>
@@ -322,6 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 });
 </script>
 {% endblock %}

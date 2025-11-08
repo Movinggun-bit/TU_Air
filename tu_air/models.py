@@ -9,6 +9,7 @@ class Member(db.Model):
     Member_ID = db.Column(db.String(20), primary_key=True)
     passwd = db.Column(db.String(20), nullable=False) 
     Name = db.Column(db.String(25), nullable=False)
+    eng_Name = db.Column(db.String(30), nullable=False)
     Nationality = db.Column(db.String(20), nullable=False)
     Date_OF_Birth = db.Column(db.DATE, nullable=False)
     Phone = db.Column(db.String(20), nullable=False)
@@ -82,19 +83,25 @@ class Booking(db.Model):
     payments = db.relationship('Payment', back_populates='booking', lazy=True)
     passengers = db.relationship('Passenger', back_populates='booking', lazy=True)
 
-# --- [신규] Passenger 모델 (Booking과 관계 설정) ---
-# (DB 스키마의 'pasenger' 오타를 그대로 사용합니다)
+# (DB 스키마의 오타를 바로잡습니다)
 class Passenger(db.Model):
-    __tablename__ = 'pasenger'
+    # [!!!] (수정) 테이블 이름을 'passenger'로 변경 [!!!]
+    __tablename__ = 'passenger'
+    
     Booking_ID = db.Column(db.String(15), db.ForeignKey('booking.Booking_ID'), primary_key=True)
     Flight_ID = db.Column(db.String(15), primary_key=True)
-    Seat_ID = db.Column(db.String(25), primary_key=True) # (Seat/FlightSeat 모델은 생략)
-    Name = db.Column(db.String(30), nullable=False)
-    Date_OF_Birth = db.Column(db.DATE, nullable=False)
+    Seat_ID = db.Column(db.String(25), primary_key=True)
     
-    # --- [관계 설정 4] ---
+    Gender = db.Column(db.Enum('M', 'F'), nullable=False)
+    Name = db.Column(db.String(30), nullable=False) 
+    Date_OF_Birth = db.Column(db.DATE, nullable=False)
+    Nationality = db.Column(db.String(20), nullable=True, default=None)
+    Passport_No = db.Column(db.String(20), nullable=True, default=None)
+    Phone = db.Column(db.String(20), nullable=True, default=None)
+    Mileage_Earned = db.Column(db.DECIMAL(10, 2), nullable=True, default=None)
+
+    # --- [관계 설정] ---
     booking = db.relationship('Booking', back_populates='passengers')
-    # Passenger(1)가 Boarding_Pass(1)를 가집니다.
     boarding_pass = db.relationship('Boarding_Pass', uselist=False, back_populates='passenger')
 
 # --- [신규] Payment 모델 (Booking과 관계 설정) ---
@@ -123,7 +130,7 @@ class Boarding_Pass(db.Model):
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['Booking_ID', 'Flight_ID', 'Seat_ID'],
-            ['pasenger.Booking_ID', 'pasenger.Flight_ID', 'pasenger.Seat_ID']
+            ['passenger.Booking_ID', 'passenger.Flight_ID', 'passenger.Seat_ID']
         ),
     )
     passenger = db.relationship('Passenger', back_populates='boarding_pass')
