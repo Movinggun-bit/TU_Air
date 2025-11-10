@@ -101,7 +101,7 @@
                 <hr class="register-divider">
                 <div class="form-group-register">
                     <label>회원아이디 (탑승객)
-                        <span class="tooltip-icon" data-tooltip="예약 시 마일리지가 적립됩니다">?</span>
+                        <span class="tooltip-icon" data-tooltip="항공편 이용시 마일리지가 적립됩니다">?</span>
                     </label>
                     <div class="pax-membership-wrapper">
                         <select name="pax_airline" class="form-input-register">
@@ -121,7 +121,7 @@
             총 결제 금액: <strong>KRW {{ "{:,.0f}".format(booking_info.total_price) }}</strong>
         </div>
 
-        <button type="submit" class="btn-register-submit" id="btn_submit_passengers">다음 (결제)</button>
+        <button type="submit" class="btn-register-submit" id="btn_submit_passengers">좌석 선택</button>
     </form>
 </div>
 {% endblock %}

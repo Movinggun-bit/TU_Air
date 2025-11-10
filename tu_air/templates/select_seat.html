@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+{% block title %}좌석 선택 - TU Air{% endblock %}
+
+{% block content %}
+<div class="seatmap-container">
+
+    <div class="seatmap-tab-header">
+        <a class="seatmap-tab {% if direction == 'outbound' %}active{% else %}inactive{% endif %}"
+            href="{% if direction == 'inbound' %}{{ url_for('booking.select_seat', direction='outbound') }}{% else %}#{% endif %}"
+            {% if direction == 'outbound' %}onclick="event.preventDefault();"{% endif %}>
+            <strong>{{ outbound_flight.Departure_Airport_Code }}</strong>
+            <small>{{ outbound_flight.departure_airport.City }}</small>
+            <span>✈</span>
+            <strong>{{ outbound_flight.Arrival_Airport_Code }}</strong>
+            <small>{{ outbound_flight.arrival_airport.City }}</small>
+            <span class="tab-flight-details">
+                {{ outbound_flight.Departure_Time.strftime('%Y.%m.%d (%a)') }} ({{ outbound_flight.Flight_No }})
+            </span>
+        </a>
+        {% if inbound_flight %}
+        <a class="seatmap-tab {% if direction == 'inbound' %}active{% else %}inactive{% endif %}"
+            href="#" onclick="event.preventDefault();">
+            <strong>{{ inbound_flight.Departure_Airport_Code }}</strong>
+            <small>{{ inbound_flight.departure_airport.City }}</small>
+            <span>✈</span>
+            <strong>{{ inbound_flight.Arrival_Airport_Code }}</strong>
+            <small>{{ inbound_flight.arrival_airport.City }}</small>
+            <span class="tab-flight-details">
+                {{ inbound_flight.Departure_Time.strftime('%Y.%m.%d (%a)') }} ({{ inbound_flight.Flight_No }})
+            </span>
+        </a>
+        {% endif %}
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-error" style="max-width: 1000px; margin: 20px auto;">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="seatmap-layout">
+        <div class="seatmap-plane">
+            <div class="seatmap-legend">
+                <span><span class="seat-icon available"></span> 선택 가능 ({{ seat_class }})</span>
+                <span><span class="seat-icon reserved"></span> 선택 불가</span>
+                <span><span class="seat-icon selected"></span> 내 좌석</span>
+            </div>
+            
+            <div class="seatmap-grid">
+                <div class="seatmap-row header">
+                    <div class="seat-row-label"></div> {# (좌측 빈 공간) #}
+                    <div class="seat-cols">
+                        {% for col in seat_map.columns %}
+                            <div class="seat-col-label">{{ col }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="seat-row-label"></div>
+                </div>
+                {% for row_num in seat_map.rows %}
+                    {% set seats_in_this_row = seat_map.seats[row_num] %}
+                    {% set matching_seats = seats_in_this_row | selectattr('class', 'equalto', seat_class) | list %}
+                    {% if matching_seats | length > 0 %}
+                
+                    <div class="seatmap-row">
+                        <div class="seat-row-label">{{ row_num }}</div> {# (좌측 행 번호) #}
+                        <div class="seat-row-content">
+                        
+                        {% set seats_in_row_dict = {} %}
+                        {% for s in seats_in_this_row %}{% set _ = seats_in_row_dict.update({s.col: s}) %}{% endfor %}
+                        
+                        {% for col in seat_map.columns %}
+                            {% if col in seats_in_row_dict %}
+                                {% set seat = seats_in_row_dict[col] %}
+                                {% if seat.class == seat_class %}
+
+                                    <div class="seat {{ seat.status | lower }}" 
+                                            data-seat-id="{{ seat.id }}"
+                                            data-seat-no="{{ row_num }}{{ col }}"
+                                            data-class="{{ seat.class }}">
+                                            <span class="seat-pax-number"></span>
+                                        </div>
+                                    {% else %}
+                                        <div class="seat-empty"></div>
+                                    {% endif %}
+                                
+                                {% else %}
+                                    <div class="seat-empty"></div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="seat-row-label">{{ row_num }}</div>
+                    </div>
+                    {% endif %} 
+                {% endfor %} 
+            </div>
+        </div>
+
+        <div class="seatmap-summary" 
+             data-passengers='{{ passengers | tojson }}'
+             data-seat-class="{{ seat_class }}"
+             data-existing-selections='{{ existing_selections | tojson }}'>
+            
+            <form id="seat_form" method="POST" action="{{ url_for('booking.select_seat') }}">
+                
+                <input type="hidden" name="direction" value="{{ direction }}">
+                <input type="hidden" name="booking_info" value="{{ booking_info }}">
+
+                <div class="pax-seat-list">
+                    {% for pax in passengers %}
+                    <div class="pax-seat-item" data-pax-index="{{ loop.index0 }}">
+                        <div class="pax-info">
+                            <span class="pax-label">인원 {{ loop.index }}</span>
+                            <strong class="pax-name">{{ pax.name }}</strong>
+                        </div>
+                        <div class="seat-selection-display" id="pax_seat_display_{{ loop.index0 }}">
+                            좌석을 선택해 주세요.
+                        </div>
+                        <button type="button" class="cancel-seat-btn" 
+                                id="pax_cancel_btn_{{ loop.index0 }}"
+                                data-pax-index="{{ loop.index0 }}">×</button>
+                        
+                        <input type="hidden" name="selected_seat" 
+                               id="pax_seat_hidden_{{ loop.index0 }}" value="">
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn-seat-submit" id="btn_seat_submit">
+                    {% if direction == 'outbound' and booking_info.inbound_flight_id %}
+                        오는 편 좌석 선택
+                    {% else %}
+                        선택 완료 (결제)
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // (1. 변수 설정)
+    const seatMap = document.querySelector('.seatmap-grid');
+    const paxItems = document.querySelectorAll('.pax-seat-item');
+    const submitButton = document.getElementById('btn_seat_submit');
+    const form = document.getElementById('seat_form');
+    const summaryElement = document.querySelector('.seatmap-summary');
+    
+    // (JS로 상태 관리)
+    const passengers = JSON.parse(summaryElement.dataset.passengers || '[]');
+    // [!!!] (R1) 사용자가 선택한 좌석 등급 [!!!]
+    const bookingSeatClass = summaryElement.dataset.seatClass; 
+    
+    let selections = JSON.parse(summaryElement.dataset.existingSelections || '{}');
+    let currentPaxIndex = 0;
+    
+    // (초기화)
+    currentPaxIndex = findNextPassengerIndex();
+
+    // (2. 헬퍼 함수 - 수정 없음)
+    function updateSeatMapVisuals() {
+        seatMap.querySelectorAll('.seat.selected').forEach(s => {
+            s.classList.remove('selected');
+            const numSpan = s.querySelector('.seat-pax-number');
+            if (numSpan) numSpan.textContent = '';
+        });
+
+        Object.entries(selections).forEach(([paxIndex, selection]) => {
+            if (selection) {
+                const seatEl = seatMap.querySelector(`.seat[data-seat-id="${selection.id}"]`);
+                if (seatEl) {
+                    seatEl.classList.add('selected');
+                    // [!!!] (R2) 인원 번호(paxIndex + 1)를 좌석에 표시 [!!!]
+                    const numSpan = seatEl.querySelector('.seat-pax-number');
+                    if (numSpan) numSpan.textContent = parseInt(paxIndex) + 1;
+                }
+            }
+        });
+    }
+
+    function updateSummaryList() {
+        let allAssigned = true;
+        paxItems.forEach((item, index) => {
+            const selection = selections[index];
+            const display = document.getElementById(`pax_seat_display_${index}`);
+            const cancelBtn = document.getElementById(`pax_cancel_btn_${index}`);
+            const hiddenInput = document.getElementById(`pax_seat_hidden_${index}`);
+            
+            item.classList.remove('active');
+
+            if (selection) {
+                display.textContent = selection.no;
+                display.classList.add('selected');
+                cancelBtn.style.display = 'block';
+                hiddenInput.value = selection.id; // (서버로 전송될 값)
+            } else {
+                display.textContent = '좌석을 선택해 주세요.';
+                display.classList.remove('selected');
+                cancelBtn.style.display = 'none';
+                hiddenInput.value = '';
+                allAssigned = false; // (아직 선택 안 한 사람 있음)
+            }
+        });
+        
+        // (모두 선택되었으면, 다음 활성 승객을 -1로)
+        if (currentPaxIndex !== -1) {
+            paxItems[currentPaxIndex].classList.add('active');
+        }
+
+        if (allAssigned) { currentPaxIndex = -1; }
+    }
+
+    function findNextPassengerIndex() {
+        // (V43의 함수 - 수정 없음)
+        for (let i = 0; i < passengers.length; i++) {
+            // (selections[i]가 아닌, selections[i]가 null인지 확인)
+            if (!selections[i] && selections[i] !== null) { 
+                 // (V43의 버그 수정: selections[String(i)]로 접근해야 함)
+            }
+            // (V43 버그 수정: JS 객체 키는 문자열 '0', '1'이므로, 
+            //  selections[i]가 아닌 selections[String(i)]로 확인해야 함)
+            if (!selections[String(i)]) {
+                return i;
+            }
+        }
+        return -1; // (모두 선택됨)
+    }
+
+    // (3. 이벤트 리스너)
+    
+    // [!!!] (A. 좌석 클릭 - R1, R3 로직 수정) [!!!]
+    seatMap.addEventListener('click', function(e) {
+        const seat = e.target.closest('.seat');
+        if (!seat) return;
+
+        const seatId = seat.dataset.seatId;
+        const seatNo = seat.dataset.seatNo;
+
+        // [!!!] (R1) (검증 1: 이 좌석이 'selected' 상태인가? -> 취소 로직) [!!!]
+        if (seat.classList.contains('selected')) {
+            // (이 좌석을 선택한 승객(paxIndex)을 찾음)
+            let paxIndexToCancel = -1;
+            Object.entries(selections).forEach(([index, selection]) => {
+                if (selection && selection.id === seatId) {
+                    paxIndexToCancel = parseInt(index);
+                }
+            });
+            
+            if (paxIndexToCancel !== -1) {
+                // (선택 취소)
+                selections[paxIndexToCancel] = null;
+                currentPaxIndex = paxIndexToCancel; // (취소한 사람을 다시 활성)
+                
+                updateSeatMapVisuals();
+                updateSummaryList();
+            }
+            return; // (취소 로직 종료)
+        }
+
+        // (검증 2: 선택 가능한 상태인가?)
+        if (!seat.classList.contains('available')) {
+            if (seat.classList.contains('reserved') || seat.classList.contains('unavailable')) {
+                // (선택 불가)
+            }
+            if (seat.classList.contains('selected')) {
+                alert('이미 선택된 좌석입니다.');
+            }
+            return; 
+        }
+
+        // [!!!] (R1) (검증 3: 좌석 등급이 일치하는가?) [!!!]
+        if (seat.dataset.class !== bookingSeatClass) {
+            alert('선택하신 좌석 등급(' + bookingSeatClass + ')과 일치하지 않는 좌석입니다.');
+            return;
+        }
+
+        // [!!!] (R3) (검증 4: 모든 승객이 이미 배정받았는가?) [!!!]
+        if (currentPaxIndex === -1) {
+            alert('모든 탑승객의 좌석이 이미 배정되었습니다.\n좌석을 변경하시려면, 오른쪽 목록에서 (X) 버튼을 눌러 먼저 취소해 주세요.');
+            return;
+        }
+        
+        // (검증 4: 이 좌석이 '나 자신'이 아닌 '다른 승객'에게 배정되었는가?)
+        const alreadyTakenByOther = Object.values(selections).some(sel => sel && sel.id === seatId);
+        if (alreadyTakenByOther) {
+            // (이 로직은 updateSeatMapVisuals()가 'available'을 덮어쓰므로 사실상 불필요하지만, 안전장치로 둠)
+            alert('이미 다른 탑승객에게 배정된 좌석입니다.');
+            return;
+        }
+
+        // (모든 검증 통과: 현재 승객에게 좌석 할당)
+        selections[currentPaxIndex] = { id: seatId, no: seatNo };
+        currentPaxIndex = findNextPassengerIndex();
+        
+        updateSeatMapVisuals();
+        updateSummaryList();
+    });
+
+    // (B. 좌석 취소 'X' 버튼 클릭 - 수정 없음)
+    document.querySelectorAll('.cancel-seat-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const paxIndex = parseInt(this.dataset.paxIndex);
+            if (confirm("선택한 좌석을 취소하시겠습니까?")) {
+                selections[paxIndex] = null;
+                currentPaxIndex = paxIndex;
+                updateSeatMapVisuals();
+                updateSummaryList();
+            }
+        });
+    });
+
+    // (C. 폼 제출 유효성 검사 - 수정 없음)
+    form.addEventListener('submit', function(e) {
+        const allSelected = Object.values(selections).every(sel => sel) && 
+                            Object.keys(selections).length === passengers.length;
+        if (!allSelected) {
+            e.preventDefault();
+            alert('모든 탑승객의 좌석을 선택해야 합니다.');
+        }
+    });
+
+    paxItems.forEach((item) => {
+        item.addEventListener('click', function(e) {
+            // (만약 'X' 버튼(자식 요소)을 클릭한 거라면, 이 리스너는 무시)
+            if (e.target.classList.contains('cancel-seat-btn')) {
+                return; 
+            }
+            
+            // (클릭된 승객의 인덱스를 가져옴)
+            const clickedPaxIndex = parseInt(this.dataset.paxIndex);
+
+            // (현재 활성 승객을 이 승객으로 변경)
+            currentPaxIndex = clickedPaxIndex;
+
+            // (시각적 업데이트: 모든 .active를 지우고 여기에만 추가)
+            updateSummaryList();
+        });
+    });
+
+    // (4. 초기화)
+    updateSeatMapVisuals();
+    updateSummaryList();
+});
+</script>
+{% endblock %}

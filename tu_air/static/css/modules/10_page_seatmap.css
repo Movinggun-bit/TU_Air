@@ -1,0 +1,239 @@
+
+/* --- 10. 좌석 선택 (seatmap) 스타일 --- */
+
+.seatmap-container {
+    max-width: 1200px;
+    margin: 30px auto;
+}
+
+/* [!!!] (1. V40 탭 헤더 스타일) [!!!] */
+.seatmap-tab-header {
+    display: flex;
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.seatmap-tab {
+    flex: 1;
+    padding: 20px 30px;
+    text-align: left;
+    position: relative;
+}
+.seatmap-tab.active {
+    background-color: #fff;
+    color: #333;
+}
+.seatmap-tab.inactive {
+    background-color: #6C757D;
+    color: #f0f0f0;
+    opacity: 0.8;
+}
+.seatmap-tab strong { font-size: 24px; font-weight: 700; margin-right: 5px; }
+.seatmap-tab small { font-size: 15px; }
+.seatmap-tab span { font-size: 20px; color: #888; margin: 0 8px; }
+.seatmap-tab.inactive span { color: #ccc; }
+.seatmap-tab .tab-flight-details {
+    display: block;
+    font-size: 14px;
+    color: #555;
+    margin: 8px 0 0 0;
+}
+.seatmap-tab.inactive .tab-flight-details { color: #ddd; }
+
+/* (V40 레이아웃) */
+.seatmap-layout {
+    display: flex;
+    gap: 30px;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 0 0 8px 8px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* [!!!] (2. V38/V39 좌석 그리드 스타일) [!!!] */
+/* (왼쪽: 좌석 맵) */
+.seatmap-plane {
+    flex-grow: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.seatmap-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px 20px;
+    font-size: 13px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+}
+.seatmap-legend span { display: flex; align-items: center; gap: 6px; }
+.seat-icon {
+    width: 16px; height: 16px; display: inline-block;
+    border-radius: 3px;
+}
+.seat-icon.available { background-color: #fff; border: 1px solid #aaa; }
+.seat-icon.reserved { background-color: #ccc; border: 1px solid #aaa; }
+.seat-icon.selected { background-color: #D90429; border: 1px solid #D90429; }
+
+/* (좌석 그리드) */
+.seatmap-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+.seatmap-row {
+    display: flex;
+    align-items: center;
+    gap: 50px; /* (행 번호와 좌석 그리드 사이 간격) */
+}
+.seat-row-label {
+    width: 30px; 
+    height: 35px;
+    line-height: 35px;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+}
+
+/* (열/좌석 컨테이너) */
+.seat-cols, .seat-row-content {
+    display: flex;
+    gap: 8px; /* (개별 좌석/열 번호 간 간격) */
+}
+
+/* (열 번호 레이블) */
+.seat-col-label {
+    width: 35px;
+    height: 35px;
+    line-height: 35px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* (개별 좌석) */
+.seat, .seat-empty {
+    width: 35px;
+    height: 35px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-sizing: border-box;
+}
+.seat {
+    border: 1px solid #aaa;
+}
+.seat.available {
+    background-color: #fff;
+    cursor: pointer;
+}
+.seat.available:hover {
+    background-color: #e0f0ff;
+    border-color: #004a99;
+}
+.seat.reserved, .seat.unavailable {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+.seat.selected {
+    background-color: #D90429;
+    border-color: #D90429;
+    cursor: pointer; 
+}
+
+/* (좌석 위 인원 번호 - V39 수정) */
+.seat-pax-number {
+    position: absolute;
+    font-size: 16px;
+    font-weight: bold;
+    color: white; 
+    text-shadow: 0px 0px 3px rgba(0,0,0,0.5); 
+    display: none; /* (평소 숨김) */
+}
+.seat.selected .seat-pax-number {
+    display: block; /* (선택 시 보임) */
+}
+
+/* (오른쪽: 요약 - 수정 없음) */
+.seatmap-summary {
+    flex-basis: 500px;
+    flex-shrink: 0;
+}
+.pax-seat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.pax-seat-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.2s;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+/* (현재 선택 중인 승객) */
+.pax-seat-item.active {
+    border-color: #004a99;
+    background-color: #f0f4f9;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.pax-info { flex-grow: 1; }
+.pax-label { font-size: 14px; color: #555; display: block; }
+.pax-name { font-size: 25px; font-weight: 600; }
+
+.seat-selection-display {
+    font-size: 16px;
+    font-weight: 500;
+    color: #888;
+}
+.seat-selection-display.selected {
+    font-weight: 700;
+    color: #D90429;
+    font-size: 30px;
+}
+
+.cancel-seat-btn {
+    display: none; /* (JS로 제어) */
+    background: #eee;
+    color: #555;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    line-height: 22px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cancel-seat-btn:hover { background-color: #ddd; }
+
+.btn-seat-submit {
+    width: 100%;
+    padding: 15px;
+    background-color: #D90429;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}

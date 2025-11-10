@@ -31,3 +31,6 @@
 
 /* 9. 마이페이지 (mypage) 스타일 */
 @import url("modules/09_page_mypage.css");
+
+/* 10. 좌석 선택 (seatmap) 스타일 */
+@import url("modules/10_page_seatmap.css");

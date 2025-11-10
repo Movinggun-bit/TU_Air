@@ -109,6 +109,7 @@
                         <div class="flight-price-col">
                             <span class="price-label">(총 {{ pax }}명)</span>
                             <strong>KRW {{ "{:,.0f}".format((flight.Price|float) * pax) }}</strong>
+                            <span class="remaining-seats">잔여좌석: {{ flight.available_seats }}석</span>
                         </div>
                         <div class="flight-select-col">
                             <input type="radio" name="outbound_flight"
@@ -160,6 +161,7 @@
                         <div class="flight-price-col">
                             <span class="price-label">(총 {{ pax }}명)</span>
                             <strong>KRW {{ "{:,.0f}".format((flight.Price|float) * pax) }}</strong>
+                            <span class="remaining-seats">잔여좌석: {{ flight.available_seats }}석</span>
                         </div>
                         <div class="flight-select-col">
                             <input type="radio" name="inbound_flight"

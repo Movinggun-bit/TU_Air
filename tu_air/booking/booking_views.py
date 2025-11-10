@@ -3,10 +3,11 @@
 
 from . import booking_bp
 from ..extensions import db
-from ..models import Flight # (향후 Flight 정보 조회용)
+from ..models import Flight, Member, Airport, Seat, Flight_Seat_Availability
 from flask import render_template, request, flash, redirect, url_for, jsonify, session, g
 import datetime
-from ..models import Member
+from functools import wraps
+import re # (좌석 번호 파싱을 위해 추가)
 
 @booking_bp.route('/select', methods=['POST'])
 def select_flights():
@@ -135,19 +136,17 @@ def passenger_info():
                 passenger_details.append({
                     "gender": gender,
                     "name": form_name_en,
-                    "dob": form_dob,
+                    "dob_str": form_dob.isoformat(),
                     "member_id": member_id_to_save
                 })
 
             # (TODO: 이 passenger_details 리스트를 사용하여
             #  Booking 생성 -> Booking_ID 획득 -> Passenger 테이블에 INSERT...)
 
-            # (예약 완료 후 세션 비우기)
-            session.pop('pending_booking', None)
-            session.pop('is_guest', None)
+            session['pending_booking']['passengers'] = passenger_details
+            session.modified = True # (세션 딕셔너리 내부 변경 알림)
             
-            flash('예약 처리가 완료되었습니다! (결제 기능 구현 필요)')
-            return redirect(url_for('mypage.mypage')) # (임시로 마이페이지로)
+            return redirect(url_for('booking.select_seat', direction='outbound'))
         
         except Exception as e:
             flash(f'정보 제출 중 오류가 발생했습니다: {e}')
@@ -195,3 +194,172 @@ def validate_passenger():
 
     # (모두 통과)
     return jsonify({"valid": True})
+
+# [!!!] (신규) 좌석 선택 페이지 뷰 (GET/POST) [!!!]
+@booking_bp.route('/seat', methods=['GET', 'POST'])
+def select_seat():
+    """ (신규) 좌석 선택 페이지 """
+    
+    # 1. 세션 정보 로드
+    booking_info = session.get('pending_booking')
+    if not booking_info or 'passengers' not in booking_info:
+        flash('탑승객 정보를 먼저 입력해 주세요.')
+        return redirect(url_for('booking.passenger_info'))
+
+    # (GET/POST 모두에서 현재 방향(direction)을 확인)
+    if request.method == 'POST':
+        direction = request.form.get('direction', 'outbound')
+    else:
+        direction = request.args.get('direction', 'outbound')
+
+    # (세션에서 이 방향에 맞는 비행 ID와 좌석 등급을 가져옴)
+    is_round_trip = booking_info.get('inbound_flight_id') is not None
+    seat_class = booking_info.get('seat_class') # (예: 'Economy')
+    outbound_flight_id = booking_info.get('outbound_flight_id')
+    inbound_flight_id = booking_info.get('inbound_flight_id')
+    
+    # [!!!] (수정) 2. 탭 UI를 위해 *모든* 항공편 객체 로드 [!!!]
+    outbound_flight = Flight.query.get(outbound_flight_id)
+    inbound_flight = Flight.query.get(inbound_flight_id) if is_round_trip else None
+    
+    if direction == 'inbound':
+        current_flight_id = inbound_flight_id
+        current_flight = inbound_flight
+    else:
+        current_flight_id = outbound_flight_id
+        current_flight = outbound_flight
+        
+    if not current_flight:
+        flash('선택한 항공편 정보가 없습니다.')
+        return redirect(url_for('main.home'))
+    
+    # 2. POST (좌석 선택 완료)
+    if request.method == 'POST':
+        selected_seats = request.form.getlist('selected_seat') # (JS가 채워줄 hidden input)
+        passengers = booking_info.get('passengers', [])
+
+        if len(selected_seats) != len(passengers):
+            flash('모든 탑승객의 좌석을 선택해야 합니다.')
+            return redirect(url_for('booking.select_seat', direction=direction))
+        
+        # (세션에 이 방향의 좌석 선택 결과 저장)
+        if direction == 'outbound':
+            session['pending_booking']['outbound_seats'] = selected_seats
+        else:
+            session['pending_booking']['inbound_seats'] = selected_seats
+        
+        session.modified = True
+
+        # (다음 단계로 이동)
+        if is_round_trip and direction == 'outbound':
+            # (왕복이고 '가는 편'이 끝났으면 -> '오는 편'으로)
+            return redirect(url_for('booking.select_seat', direction='inbound'))
+        else:
+            # (편도이거나, 왕복의 '오는 편'이 끝났으면 -> 최종 결제)
+            # (TODO: 최종 결제 페이지로 이동)
+            
+            # (임시: DB 저장 로직)
+            # (TODO: 
+            #  1. DB 트랜잭션 시작
+            #  2. Booking 테이블 INSERT
+            #  3. Passenger 테이블 INSERT (세션 정보 + outbound_seats/inbound_seats)
+            #  4. Payment 테이블 INSERT (결제)
+            #  5. flight_seat_availability 상태 'Reserved'로 UPDATE
+            #  6. 트랜잭션 커밋)
+            
+            session.pop('pending_booking', None) 
+            session.pop('is_guest', None)
+            
+            flash('좌석 선택이 완료되었습니다! (DB 저장 로직 구현 필요)')
+            return redirect(url_for('mypage.mypage'))
+
+    # 3. GET (좌석 맵 페이지 로드)
+    
+    # (DB에서 이 항공편의 모든 좌석 정보와 상태를 가져옴)
+    # (Seat.Seat_No가 '1A', '10K' 등 위치 정보를 포함한다고 가정)
+    # [!!!] (수정) 쿼리 변경: Seat.Class를 함께 조회 [!!!]
+    seat_query = db.session.query(
+            Seat.Seat_ID, Seat.Seat_No, Seat.Class, 
+            Flight_Seat_Availability.Availability_Status
+        ).join(
+            Flight_Seat_Availability, Seat.Seat_ID == Flight_Seat_Availability.Seat_ID
+        ).filter(
+            Flight_Seat_Availability.Flight_ID == current_flight_id
+        )
+    
+    all_seats = seat_query.all()
+
+    # (가져온 데이터를 템플릿이 쓰기 좋은 '행(Row)' 기반 딕셔너리로 가공)
+    # 예: seat_map = {1: [{'no': '1A', ...}, {'no': '1K', ...}], 10: [...]}
+    seat_map = {}
+    seat_cols = set() # (모든 컬럼명, 예: 'A', 'D', 'K')
+    
+    for seat in all_seats:
+        # (정규식으로 '10A' -> '10'과 'A'로 분리)
+        match = re.match(r'(\d+)([A-Z])$', seat.Seat_No)
+        if not match: 
+            continue # (유효하지 않은 좌석 번호)
+            
+        row_num_str = match.group(1)
+        col_char = match.group(2)
+        
+        row_num = int(row_num_str)
+        seat_cols.add(col_char)
+        
+        if row_num not in seat_map:
+            seat_map[row_num] = []
+            
+        seat_map[row_num].append({
+            "id": seat.Seat_ID,
+            "col": col_char,
+            "status": seat.Availability_Status, # ('Available', 'Reserved', 'Unavailable')
+            "class": seat.Class
+        })
+
+    # (컬럼명 정렬, 예: A, D, E, F, G, K)
+    sorted_cols = sorted(list(seat_cols))
+    # (행 번호 정렬)
+    sorted_rows = sorted(seat_map.keys())
+
+    # (템플릿에 전달할 최종 데이터)
+    final_seat_map = {
+        "columns": sorted_cols, # ['A', 'D', 'E', 'F', 'G', 'K']
+        "rows": sorted_rows,    # [1, 2, 3, 4, 5, 6, 7]
+        "seats": seat_map       # {1: [{'id': ...}, ...], ...}
+    }
+    
+    # (세션에서 탑승객 정보 가져오기)
+    passengers = booking_info.get('passengers', [])
+
+    # [!!!] (R1) (신규) 3b. 세션에서 *이미 선택한* 좌석 정보 로드 [!!!]
+    existing_selections = {}
+    saved_seat_ids = []
+    
+    if direction == 'outbound' and 'outbound_seats' in booking_info:
+        saved_seat_ids = booking_info['outbound_seats']
+    elif direction == 'inbound' and 'inbound_seats' in booking_info:
+        saved_seat_ids = booking_info['inbound_seats']
+
+    # (JS가 사용할 딕셔너리 형태로 재생성)
+    for i in range(len(passengers)):
+        if i < len(saved_seat_ids) and saved_seat_ids[i]:
+            seat_id = saved_seat_ids[i]
+            seat_obj = Seat.query.get(seat_id) # (DB 조회)
+            if seat_obj:
+                existing_selections[str(i)] = {'id': seat_obj.Seat_ID, 'no': seat_obj.Seat_No}
+            else:
+                existing_selections[str(i)] = None
+        else:
+            existing_selections[str(i)] = None
+    
+    # (3c. 템플릿 렌더링)
+    return render_template('select_seat.html', 
+                           current_flight=current_flight, 
+                           outbound_flight=outbound_flight, 
+                           inbound_flight=inbound_flight,   
+                           passengers=passengers,
+                           seat_map=final_seat_map,
+                           seat_class=seat_class, 
+                           direction=direction,
+                           booking_info=booking_info,
+                           existing_selections=existing_selections) # (!!! 추가 !!!)

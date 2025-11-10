@@ -247,3 +247,10 @@
     margin-left: 10px;
     vertical-align: middle;
 }
+/* [!!!] (신규) 항공편 카드 - 잔여 좌석 스타일 [!!!] */
+.flight-price-col .remaining-seats {
+    font-size: 14px;
+    color: #D90429; /* (강조되는 빨간색) */
+    margin-top: 5px;
+    font-weight: 600;
+}

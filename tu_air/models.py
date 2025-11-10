@@ -58,6 +58,7 @@ class Flight(db.Model):
     # Flight가 Airport를 'departure_airport'와 'arrival_airport'로 참조합니다.
     departure_airport = db.relationship('Airport', foreign_keys=[Departure_Airport_Code])
     arrival_airport = db.relationship('Airport', foreign_keys=[Arrival_Airport_Code])
+    seat_availabilities = db.relationship('Flight_Seat_Availability', back_populates='flight')
 
 # --- [신규] Booking 모델 (Member, Flight와 관계 설정) ---
 class Booking(db.Model):
@@ -134,3 +135,39 @@ class Boarding_Pass(db.Model):
         ),
     )
     passenger = db.relationship('Passenger', back_populates='boarding_pass')
+
+# --- [신규] Aircraft 모델 ---
+class Aircraft(db.Model):
+    __tablename__ = 'aircraft'
+    Aircraft_ID = db.Column(db.String(10), primary_key=True)
+    Model = db.Column(db.String(35), nullable=False)
+    Manufacturer = db.Column(db.String(35), nullable=False)
+    Seat_Capacity = db.Column(db.INT, nullable=False)
+    
+    # (관계: 1대의 항공기는 N개의 좌석을 가짐)
+    seats = db.relationship('Seat', back_populates='aircraft')
+
+# --- [신규] Seat 모델 (Aircraft와 관계 설정) ---
+class Seat(db.Model):
+    __tablename__ = 'seat'
+    Seat_ID = db.Column(db.String(25), primary_key=True)
+    Aircraft_ID = db.Column(db.String(10), db.ForeignKey('aircraft.Aircraft_ID'), nullable=False)
+    Seat_No = db.Column(db.String(5), nullable=False)
+    Class = db.Column(db.Enum('Economy', 'Business', 'First'), nullable=False)
+
+    # (관계: 1개의 좌석은 1대의 항공기에 속함)
+    aircraft = db.relationship('Aircraft', back_populates='seats')
+    
+    # (관계: 1개의 좌석은 N개의 비행편에서 가용 상태를 가짐)
+    flight_availabilities = db.relationship('Flight_Seat_Availability', back_populates='seat')
+
+# --- [신규] Flight_Seat_Availability 모델 (Flight, Seat와 관계 설정) ---
+class Flight_Seat_Availability(db.Model):
+    __tablename__ = 'flight_seat_availability'
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), primary_key=True)
+    Seat_ID = db.Column(db.String(25), db.ForeignKey('seat.Seat_ID'), primary_key=True)
+    Availability_Status = db.Column(db.Enum('Available', 'Reserved', 'Unavailable'), nullable=False, default='Available')
+
+    # (관계: N:1)
+    flight = db.relationship('Flight', back_populates='seat_availabilities')
+    seat = db.relationship('Seat', back_populates='flight_availabilities')
