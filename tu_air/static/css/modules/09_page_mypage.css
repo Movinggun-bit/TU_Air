@@ -195,3 +195,15 @@
 .icon-flight:before { content: '✈️'; }
 .icon-user:before { content: '👤'; }
 .icon-payment:before { content: '💳'; }
+
+/* [!!!] (R3) 마이페이지 - 탑승객 항공편 구분 헤딩 [!!!] */
+.pax-flight-heading {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+    margin: 10px 0 5px 10px;
+}
+.pax-flight-heading:first-of-type {
+    margin-top: 0;
+}

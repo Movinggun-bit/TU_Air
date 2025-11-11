@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}예약 확인 및 결제 - TU Air{% endblock %}
+
+{% block content %}
+<div class="register-container"> 
+    <h1 class="register-title">예약 확인</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-error" style="margin-bottom: 20px;">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="register-form" method="POST" action="{{ url_for('booking.finalize_booking') }}">
+        
+        <div class="passenger-form-box">
+            <h2 class="pax-header">항공편 정보</h2>
+            <div class="review-flight-info">
+                <strong>[가는 편] {{ outbound_flight.Flight_No }}</strong>
+                <p>
+                    {{ outbound_flight.departure_airport.City }} ({{ outbound_flight.Departure_Airport_Code }})
+                    → 
+                    {{ outbound_flight.arrival_airport.City }} ({{ outbound_flight.Arrival_Airport_Code }})
+                </p>
+                <p>출발: {{ outbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ outbound_flight.Departure_Gate }})</p>
+                <p>도착: {{ outbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ outbound_flight.Arrival_Gate }})</p>
+            </div>
+            {% if inbound_flight %}
+            <div class="review-flight-info" style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                <strong>[오는 편] {{ inbound_flight.Flight_No }}</strong>
+                <p>
+                    {{ inbound_flight.departure_airport.City }} ({{ inbound_flight.Departure_Airport_Code }})
+                    → 
+                    {{ inbound_flight.arrival_airport.City }} ({{ inbound_flight.Arrival_Airport_Code }})
+                </p>
+                <p>출발: {{ inbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ inbound_flight.Departure_Gate }})</p>
+                <p>도착: {{ inbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ inbound_flight.Arrival_Gate }})</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="passenger-form-box">
+            <h2 class="pax-header">탑승객 및 좌석</h2>
+            <ul class="review-passenger-list">
+                {% for i in range(passengers | length) %}
+                <li>
+                    <strong>인원 {{ i + 1 }}: {{ passengers[i].name }}</strong>
+                    <div class="review-seat-info">
+                        <span>[가는 편] 좌석: {{ outbound_seats[i] }}</span>
+                        {% if inbound_flight %}
+                        <span>[오는 편] 좌석: {{ inbound_seats[i] }}</span>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="total-summary-final">
+            총 결제 금액: <strong>KRW {{ "{:,.0f}".format(booking_info.total_price) }}</strong>
+        </div>
+
+        <button type="submit" class="btn-register-submit">
+            결제하기
+        </button>
+    </form>
+</div>
+{% endblock %}

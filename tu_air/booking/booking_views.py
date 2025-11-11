@@ -3,11 +3,14 @@
 
 from . import booking_bp
 from ..extensions import db
-from ..models import Flight, Member, Airport, Seat, Flight_Seat_Availability
+from ..models import Flight, Member, Airport, Seat, Flight_Seat_Availability, Booking, Passenger, Payment
 from flask import render_template, request, flash, redirect, url_for, jsonify, session, g
 import datetime
 from functools import wraps
 import re # (좌석 번호 파싱을 위해 추가)
+import random # (!!! 1. random 임포트 추가 !!!)
+import string # (!!! 2. string 임포트 추가 !!!)
+
 
 @booking_bp.route('/select', methods=['POST'])
 def select_flights():
@@ -255,8 +258,8 @@ def select_seat():
             # (왕복이고 '가는 편'이 끝났으면 -> '오는 편'으로)
             return redirect(url_for('booking.select_seat', direction='inbound'))
         else:
-            # (편도이거나, 왕복의 '오는 편'이 끝났으면 -> 최종 결제)
-            # (TODO: 최종 결제 페이지로 이동)
+            # [!!!] (수정) (편도이거나, 왕복의 '오는 편'이 끝났으면 -> '예약 확인' 페이지로) [!!!]
+            return redirect(url_for('booking.review_booking'))
             
             # (임시: DB 저장 로직)
             # (TODO: 
@@ -266,12 +269,6 @@ def select_seat():
             #  4. Payment 테이블 INSERT (결제)
             #  5. flight_seat_availability 상태 'Reserved'로 UPDATE
             #  6. 트랜잭션 커밋)
-            
-            session.pop('pending_booking', None) 
-            session.pop('is_guest', None)
-            
-            flash('좌석 선택이 완료되었습니다! (DB 저장 로직 구현 필요)')
-            return redirect(url_for('mypage.mypage'))
 
     # 3. GET (좌석 맵 페이지 로드)
     
@@ -363,3 +360,157 @@ def select_seat():
                            direction=direction,
                            booking_info=booking_info,
                            existing_selections=existing_selections) # (!!! 추가 !!!)
+
+# [!!!] (신규) 4. 예약 확인 페이지 (GET) [!!!]
+@booking_bp.route('/review', methods=['GET'])
+def review_booking():
+    """ 예약 확인(Review) 페이지. 결제 전 최종 정보를 보여줍니다. """
+    
+    booking_info = session.get('pending_booking')
+    if not booking_info:
+        flash('예약 정보가 없습니다.')
+        return redirect(url_for('main.home'))
+
+    # (세션의 ID들로 DB에서 실제 객체/정보 로드)
+    passengers = booking_info.get('passengers', [])
+    outbound_flight = Flight.query.get(booking_info['outbound_flight_id'])
+    outbound_seats_ids = booking_info.get('outbound_seats', [])
+    # (좌석 ID 리스트로 좌석 번호(Seat_No) 리스트 조회)
+    outbound_seats_nos = [Seat.query.get(sid).Seat_No for sid in outbound_seats_ids]
+    
+    inbound_flight = None
+    inbound_seats_nos = []
+    if booking_info.get('inbound_flight_id'):
+        inbound_flight = Flight.query.get(booking_info['inbound_flight_id'])
+        inbound_seats_ids = booking_info.get('inbound_seats', [])
+        inbound_seats_nos = [Seat.query.get(sid).Seat_No for sid in inbound_seats_ids]
+
+    return render_template('review_booking.html',
+                           booking_info=booking_info,
+                           passengers=passengers,
+                           outbound_flight=outbound_flight,
+                           outbound_seats=outbound_seats_nos,
+                           inbound_flight=inbound_flight,
+                           inbound_seats=inbound_seats_nos,
+                           is_guest=session.get('is_guest', False))
+
+# [!!!] (신규) 3. 예약 번호 생성 헬퍼 함수 (finalize_booking 위에 추가) [!!!]
+def generate_unique_booking_id(length=15):
+    """
+    요청사항: 15자리의 영문 대문자(A-Z)와 숫자(0-9)로 구성된
+    중복되지 않는 랜덤 예약 번호를 생성합니다.
+    """
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        # (1. 15자리 랜덤 문자열 생성)
+        new_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        # (2. DB의 Booking 테이블에 이 ID가 이미 있는지 확인)
+        if not Booking.query.get(new_id):
+            # (3. 없으면 (unique하면) 이 ID를 반환)
+            return new_id
+
+# [!!!] (신규) 5. 최종 결제 및 DB 저장 (POST) [!!!]
+@booking_bp.route('/finalize', methods=['POST'])
+def finalize_booking():
+    """ '결제' 버튼 클릭 시 호출. DB에 모든 정보를 저장. """
+    
+    booking_info = session.get('pending_booking')
+    if not booking_info:
+        flash('예약 정보가 만료되었습니다.')
+        return redirect(url_for('main.home'))
+
+    try:
+        # (1. Booking 테이블 INSERT)
+        new_booking_id = generate_unique_booking_id(15)
+        new_booking = Booking(
+            Booking_ID=new_booking_id,
+            Member_ID=g.user.Member_ID if g.user and not session.get('is_guest', False) else None,
+            Guest_ID=None, # (TODO: 비회원 예약자 정보 저장 시 ID 연결)
+            Outbound_Flight_ID=booking_info['outbound_flight_id'],
+            Return_Flight_ID=booking_info.get('inbound_flight_id'),
+            Booking_Date=datetime.datetime.now(),
+            Status='Reserved', # (요청사항)
+            Passenger_num=booking_info['passenger_count']
+        )
+        db.session.add(new_booking)
+
+        # (2. Passenger 테이블 INSERT)
+        passengers_data = booking_info.get('passengers', [])
+        outbound_seats = booking_info.get('outbound_seats', [])
+        
+        for i, pax_data in enumerate(passengers_data):
+            # (R4: 마일리지 계산)
+            mileage_to_earn_out = 0.0
+            if pax_data.get('member_id'): # (회원 ID가 검증되었으면)
+                mileage_to_earn_out = booking_info['outbound_price'] * 0.10
+            pax_out = Passenger(
+                Booking_ID=new_booking_id,
+                Flight_ID=booking_info['outbound_flight_id'],
+                Seat_ID=outbound_seats[i],
+                Gender=pax_data['gender'],
+                Name=pax_data['name'],
+                Date_OF_Birth=datetime.date.fromisoformat(pax_data['dob_str']),
+                Mileage_Earned=mileage_to_earn_out # (계산된 마일리지)
+            )
+            db.session.add(pax_out)
+
+        # (왕복일 경우 오는 편도 저장)
+        if booking_info.get('inbound_flight_id'):
+            inbound_seats = booking_info.get('inbound_seats', [])
+            for i, pax_data in enumerate(passengers_data):
+                mileage_to_earn_in = 0.0
+                if pax_data.get('member_id'):
+                    mileage_to_earn_in = booking_info['inbound_price'] * 0.10
+                pax_in = Passenger(
+                    Booking_ID=new_booking_id,
+                    Flight_ID=booking_info['inbound_flight_id'],
+                    Seat_ID=inbound_seats[i],
+                    Gender=pax_data['gender'],
+                    Name=pax_data['name'],
+                    Date_OF_Birth=datetime.date.fromisoformat(pax_data['dob_str']),
+                    Mileage_Earned=mileage_to_earn_in # (계산된 마일리지)
+                )
+                db.session.add(pax_in)
+
+        # (3. Payment 테이블 INSERT)
+        new_payment = Payment(
+            Booking_ID=new_booking_id,
+            Amount=booking_info['total_price'],
+            Payment_Date=datetime.datetime.now(),
+            status='Paid' # (결제 성공으로 간주)
+        )
+        db.session.add(new_payment)
+
+        # (4. Flight_Seat_Availability 테이블 UPDATE)
+        for seat_id in outbound_seats:
+            seat_to_update = Flight_Seat_Availability.query.get((booking_info['outbound_flight_id'], seat_id))
+            if seat_to_update and seat_to_update.Availability_Status == 'Available':
+                seat_to_update.Availability_Status = 'Reserved' # (요청사항)
+            else:
+                raise Exception(f"좌석 {seat_id}를 예약할 수 없습니다.") # (중복 예약 방지)
+        
+        if booking_info.get('inbound_flight_id'):
+            inbound_seats = booking_info.get('inbound_seats', [])
+            for seat_id in inbound_seats:
+                seat_to_update = Flight_Seat_Availability.query.get((booking_info['inbound_flight_id'], seat_id))
+                if seat_to_update and seat_to_update.Availability_Status == 'Available':
+                    seat_to_update.Availability_Status = 'Reserved'
+                else:
+                    raise Exception(f"좌석 {seat_id}를 예약할 수 없습니다.")
+        
+        # (5. DB 커밋)
+        db.session.commit()
+        
+        # (6. 세션 정리)
+        session.pop('pending_booking', None)
+        session.pop('is_guest', None)
+        
+        flash('항공권 예약 및 결제가 성공적으로 완료되었습니다.')
+        return redirect(url_for('mypage.mypage'))
+
+    except Exception as e:
+        db.session.rollback() # (오류 발생 시 모든 작업 롤백)
+        flash(f'예약 처리 중 심각한 오류가 발생했습니다: {e}')
+        return redirect(url_for('booking.review_booking'))
+    

@@ -1,0 +1,44 @@
+/* TU_Air/tu_air/static/css/modules/11_page_review.css */
+/* (!!! 새 파일 !!!) */
+
+/* --- 11. 예약 확인 (review_booking.html) 스타일 --- */
+
+/* (register.html, passenger_info.html의 스타일 재사용) */
+/* .register-container, .register-title, .passenger-form-box, 
+   .pax-header, .total-summary-final, .btn-register-submit ... */
+
+.review-flight-info p {
+    margin: 5px 0;
+    font-size: 15px;
+    color: #333;
+}
+.review-flight-info strong {
+    font-size: 16px;
+    color: #004a99;
+}
+
+.review-passenger-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.review-passenger-list li {
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
+}
+.review-passenger-list li:last-child {
+    border-bottom: none;
+}
+.review-passenger-list strong {
+    font-size: 17px;
+    font-weight: 600;
+}
+.review-seat-info {
+    margin-top: 8px;
+}
+.review-seat-info span {
+    font-size: 15px;
+    color: #555;
+    margin-right: 15px;
+    font-weight: 500;
+}

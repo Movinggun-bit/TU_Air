@@ -90,8 +90,8 @@ class Passenger(db.Model):
     __tablename__ = 'passenger'
     
     Booking_ID = db.Column(db.String(15), db.ForeignKey('booking.Booking_ID'), primary_key=True)
-    Flight_ID = db.Column(db.String(15), primary_key=True)
-    Seat_ID = db.Column(db.String(25), primary_key=True)
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), primary_key=True)
+    Seat_ID = db.Column(db.String(25), db.ForeignKey('seat.Seat_ID'), primary_key=True)
     
     Gender = db.Column(db.Enum('M', 'F'), nullable=False)
     Name = db.Column(db.String(30), nullable=False) 
@@ -104,7 +104,9 @@ class Passenger(db.Model):
     # --- [관계 설정] ---
     booking = db.relationship('Booking', back_populates='passengers')
     boarding_pass = db.relationship('Boarding_Pass', uselist=False, back_populates='passenger')
-
+    flight = db.relationship('Flight', foreign_keys=[Flight_ID])
+    seat = db.relationship('Seat', foreign_keys=[Seat_ID])
+    
 # --- [신규] Payment 모델 (Booking과 관계 설정) ---
 class Payment(db.Model):
     __tablename__ = 'payment'
