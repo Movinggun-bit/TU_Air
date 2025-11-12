@@ -172,6 +172,13 @@
     align-items: center;
     gap: 8px;
 }
+/* [!!!] (R1, R2) 마이페이지 '예약 상세/관리' 버튼 스타일 [!!!] */
+.booking-card-footer {
+    display: flex;
+    justify-content: flex-end; /* (오른쪽 끝으로 정렬) */
+    padding: 15px 20px;
+    border-top: 1px solid #f0f0f0;
+}
 .flight-detail {
     border-left: 3px solid #004a99;
     padding-left: 15px;
@@ -206,4 +213,71 @@
 }
 .pax-flight-heading:first-of-type {
     margin-top: 0;
+}
+/* [!!!] (신규) 예약 상세 페이지 - 관리 버튼 [!!!] */
+.reservation-actions {
+    margin-top: 30px;
+}
+.reservation-actions-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.action-box {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    padding: 25px 30px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.action-box h4 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+}
+/* [!!!] (R3) 텍스트 정렬을 위한 래퍼 [!!!] */
+.action-box .action-text {
+    flex-grow: 1; /* (이 래퍼가 남은 공간을 모두 차지) */
+    margin-right: 20px; /* (버튼과의 여백) */
+}
+.action-box p {
+    margin: 0;
+    font-size: 15px;
+    color: #555;
+    flex-grow: 1;
+    margin-right: 20px;
+}
+.btn-action {
+    padding: 12px 20px;
+    background-color: #004a99;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 10px;
+}
+.btn-action.danger {
+    background-color: #D90429;
+}
+.btn-action-small {
+    padding: 8px 15px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #004a99;
+    background-color: #f0f4f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+}
+.btn-action-small:hover {
+    background-color: #e0f0ff;
 }

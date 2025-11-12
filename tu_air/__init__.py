@@ -22,11 +22,14 @@ def create_app(config_class=Config):
     
         from .main import main_views
         from . import auth
-        from . import mypage # (!!! 1. mypage 임포트 !!!)
-        from . import booking # (!!! 1. booking 임포트 !!!)
+        from . import mypage
+        from . import booking
+        from . import reservation
         
         app.register_blueprint(main_views.main_bp)
         app.register_blueprint(auth.auth_bp, url_prefix='/auth')
         app.register_blueprint(mypage.mypage_bp) # (!!! 2. mypage_bp 등록 !!!)
         app.register_blueprint(booking.booking_bp, url_prefix='/booking')
+        app.register_blueprint(reservation.reservation_bp, url_prefix='/reservation')
+
     return app

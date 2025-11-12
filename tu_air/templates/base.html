@@ -25,7 +25,10 @@
                    class="{{ 'active' if request.endpoint == 'main.booking' else '' }}">
                    항공권 예매
                 </a>
-                <a href="#">예약 조회</a>
+                <a href="{{ url_for('reservation.index') }}"
+                   class="{{ 'active' if request.endpoint.startswith('reservation.') else '' }}">
+                   예약 조회
+                </a>
             </nav>
             
             <div class="user-nav">

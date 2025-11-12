@@ -208,13 +208,51 @@ def validate_passenger():
 # [!!!] (신규) 좌석 선택 페이지 뷰 (GET/POST) [!!!]
 @booking_bp.route('/seat', methods=['GET', 'POST'])
 def select_seat():
-    """ (신규) 좌석 선택 페이지 """
+    """ (수정) 좌석 선택 페이지 (신규 예약 / 예약 변경 동시 지원) """
     
-    # 1. 세션 정보 로드
-    booking_info = session.get('pending_booking')
-    if not booking_info or 'passengers' not in booking_info:
-        flash('탑승객 정보를 먼저 입력해 주세요.')
-        return redirect(url_for('booking.passenger_info'))
+    # [!!!] (수정) 1. '예약 변경'인지 '신규 예약'인지 확인 [!!!]
+    change_booking_id = request.args.get('change_booking_id') or request.form.get('change_booking_id')
+    
+    if change_booking_id:
+        # --- (A) '예약 변경' 워크플로우 ---
+        booking_info = {} # (세션 대신 DB에서 정보 재구성)
+        booking = Booking.query.get(change_booking_id)
+        if not booking:
+            flash('변경할 예약 정보를 찾을 수 없습니다.')
+            return redirect(url_for('reservation.index'))
+        
+        # (기존 예약 정보로 booking_info 딕셔너리 재구성)
+        booking_info['passenger_count'] = booking.Passenger_num
+        booking_info['outbound_flight_id'] = booking.Outbound_Flight_ID
+        booking_info['inbound_flight_id'] = booking.Return_Flight_ID
+        
+        # (passengers 리스트 재구성: name, dob_str, member_id)
+        # (Passenger에서 첫 번째 승객의 Flight_ID로 좌석 등급을 유추함 - 완벽하진 않음)
+        pax_list = Passenger.query.filter_by(Booking_ID=change_booking_id).all()
+        booking_info['passengers'] = []
+        temp_seat_class = 'Economy' # (기본값)
+        
+        for pax in pax_list:
+            # (모든 승객이 동일한 항공편/등급을 가진다고 가정)
+            if pax.Flight_ID == booking.Outbound_Flight_ID:
+                temp_seat_class = pax.seat.Class
+                booking_info['passengers'].append({
+                    "name": pax.Name,
+                    "dob_str": pax.Date_OF_Birth.isoformat(),
+                    "member_id": None # (마일리지 검증은 신규 예약 시에만)
+                })
+        booking_info['seat_class'] = temp_seat_class
+        
+        # (세션에 '변경 중' 정보 저장)
+        session['changing_booking'] = booking_info
+        session['changing_booking_id'] = change_booking_id
+        
+    else:
+        # --- (B) '신규 예약' 워크플로우 (기존 로직) ---
+        booking_info = session.get('pending_booking')
+        if not booking_info or 'passengers' not in booking_info:
+            flash('탑승객 정보를 먼저 입력해 주세요.')
+            return redirect(url_for('booking.passenger_info'))
 
     # (GET/POST 모두에서 현재 방향(direction)을 확인)
     if request.method == 'POST':
@@ -247,26 +285,58 @@ def select_seat():
     if request.method == 'POST':
         selected_seats = request.form.getlist('selected_seat') # (JS가 채워줄 hidden input)
         passengers = booking_info.get('passengers', [])
+        # (POST에서도 '예약 변경' ID 다시 확인)
+        change_booking_id_post = request.form.get('change_booking_id')
 
         if len(selected_seats) != len(passengers):
             flash('모든 탑승객의 좌석을 선택해야 합니다.')
-            return redirect(url_for('booking.select_seat', direction=direction))
+            return redirect(url_for('booking.select_seat', direction=direction, change_booking_id=change_booking_id))
         
-        # (세션에 이 방향의 좌석 선택 결과 저장)
-        if direction == 'outbound':
-            session['pending_booking']['outbound_seats'] = selected_seats
-        else:
-            session['pending_booking']['inbound_seats'] = selected_seats
-        
-        session.modified = True
+        if change_booking_id:
+            # --- (A) '예약 변경' POST ---
+            try:
+                # (1. 기존 좌석들을 'Available'로 원복)
+                flight_id_to_change = booking_info['outbound_flight_id'] if direction == 'outbound' else booking_info['inbound_flight_id']
+                old_passengers = Passenger.query.filter_by(Booking_ID=change_booking_id, Flight_ID=flight_id_to_change).all()
+                
+                for pax in old_passengers:
+                    fsa = Flight_Seat_Availability.query.get((pax.Flight_ID, pax.Seat_ID))
+                    if fsa: fsa.Availability_Status = 'Available'
+                
+                # (2. 새 좌석들을 'Reserved'로 업데이트)
+                for i in range(len(old_passengers)):
+                    old_passengers[i].Seat_ID = selected_seats[i] # (Seat_ID 변경)
+                    fsa = Flight_Seat_Availability.query.get((flight_id_to_change, selected_seats[i]))
+                    if fsa and fsa.Availability_Status == 'Available':
+                        fsa.Availability_Status = 'Reserved'
+                    else:
+                        raise Exception(f"좌석 {selected_seats[i]}를 예약할 수 없습니다.")
+                
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                flash(f'좌석 변경 중 오류가 발생했습니다: {e}')
+                return redirect(url_for('reservation.details', booking_id=change_booking_id))
 
-        # (다음 단계로 이동)
-        if is_round_trip and direction == 'outbound':
-            # (왕복이고 '가는 편'이 끝났으면 -> '오는 편'으로)
-            return redirect(url_for('booking.select_seat', direction='inbound'))
+            # [!!!] (수정) '오는 편'으로 강제 이동하는 로직 "삭제" [!!!]
+            # (무조건 '예약 상세' 페이지로 돌아감)
+            session.pop('changing_booking', None)
+            session.pop('changing_booking_id', None)
+            flash('좌석이 성공적으로 변경되었습니다.')
+            return redirect(url_for('reservation.details', booking_id=change_booking_id_post))
+
         else:
-            # [!!!] (수정) (편도이거나, 왕복의 '오는 편'이 끝났으면 -> '예약 확인' 페이지로) [!!!]
-            return redirect(url_for('booking.review_booking'))
+            # --- (B) '신규 예약' POST (기존 로직) ---
+            if direction == 'outbound':
+                session['pending_booking']['outbound_seats'] = selected_seats
+            else:
+                session['pending_booking']['inbound_seats'] = selected_seats
+            session.modified = True
+
+            if is_round_trip and direction == 'outbound':
+                return redirect(url_for('booking.select_seat', direction='inbound'))
+            else:
+                return redirect(url_for('booking.review_booking'))
             
             # (임시: DB 저장 로직)
             # (TODO: 
@@ -366,7 +436,8 @@ def select_seat():
                            seat_class=seat_class, 
                            direction=direction,
                            booking_info=booking_info,
-                           existing_selections=existing_selections) # (!!! 추가 !!!)
+                           existing_selections=existing_selections,
+                           change_booking_id=change_booking_id) # (!!! 추가 !!!)
 
 # [!!!] (신규) 4. 예약 확인 페이지 (GET) [!!!]
 @booking_bp.route('/review', methods=['GET'])
@@ -461,7 +532,7 @@ def finalize_booking():
         new_booking = Booking(
             Booking_ID=new_booking_id,
             Member_ID=g.user.Member_ID if g.user and not session.get('is_guest', False) else None,
-            Guest_ID=None, # (TODO: 비회원 예약자 정보 저장 시 ID 연결)
+            Guest_ID=guest_id_to_save,
             Outbound_Flight_ID=booking_info['outbound_flight_id'],
             Return_Flight_ID=booking_info.get('inbound_flight_id'),
             Booking_Date=datetime.datetime.now(),

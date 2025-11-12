@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}예약 상세 - {{ booking.Booking_ID }}{% endblock %}
+
+{% block content %}
+<div class="mypage-container"> <h1 class="mypage-title">예약 상세</h1>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message {{ 'error' if '오류' in messages[0] else 'success' }}">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="booking-card">
+        <div class="booking-card-body">
+            {% include '_booking_details_content.html' %}
+        </div>
+    </div>
+
+    
+    <div class="reservation-actions">
+        <h3 class="reservation-actions-title">예약 관리</h3>
+        
+        <div class="action-box">
+            <div class="action-text">
+                <h4>좌석 변경</h4>
+                <p>※선택한 좌석을 변경할 수 있습니다.</p>
+            </div>
+            <a href="{{ url_for('booking.select_seat', direction='outbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
+                가는 편 좌석 변경
+            </a>
+            {% if booking.return_flight %}
+            <a href="{{ url_for('booking.select_seat', direction='inbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
+                오는 편 좌석 변경
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="action-box">
+            <div class="action-text">
+                <h4>예약 취소</h4>
+                <p>※항공권 예약을 취소합니다. 취소 규정에 따라 수수료가 부과될 수 있습니다.</p>
+            </div>
+            <form action="{{ url_for('reservation.cancel_booking', booking_id=booking.Booking_ID) }}" method="POST"
+                  onsubmit="return confirm('정말로 이 예약을 취소하시겠습니까?');">
+                <button type="submit" class="btn-action danger">
+                    예약 취소하기
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

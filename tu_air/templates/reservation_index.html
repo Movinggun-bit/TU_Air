@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}예약 조회 - TU Air{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <h1 class="register-title">예약 조회</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-error" style="margin-bottom: 20px;">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="register-form" method="POST" action="{{ url_for('reservation.index') }}">
+        <div class="form-group-register">
+            <label for="booking_id">예약 번호 (15자리)</label>
+            <input type="text" id="booking_id" name="booking_id" 
+                   class="form-input-register" 
+                   placeholder="영문, 숫자로 조합된 예약 번호를 입력하세요"
+                   maxlength="15" required>
+        </div>
+        
+        <button type="submit" class="btn-register-submit">예약 조회</button>
+    </form>
+</div>
+{% endblock %}

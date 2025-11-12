@@ -105,6 +105,9 @@
             <form id="seat_form" method="POST" action="{{ url_for('booking.select_seat') }}">
                 
                 <input type="hidden" name="direction" value="{{ direction }}">
+                {% if change_booking_id %}
+                <input type="hidden" name="change_booking_id" value="{{ change_booking_id }}">
+                {% endif %}
                 <input type="hidden" name="booking_info" value="{{ booking_info }}">
 
                 <div class="pax-seat-list">
@@ -128,7 +131,9 @@
                 </div>
 
                 <button type="submit" class="btn-seat-submit" id="btn_seat_submit">
-                    {% if direction == 'outbound' and booking_info.inbound_flight_id %}
+                    {% if change_booking_id %}
+                        좌석 변경 완료
+                    {% elif direction == 'outbound' and booking_info.inbound_flight_id %}
                         오는 편 좌석 선택
                     {% else %}
                         선택 완료 (결제)
