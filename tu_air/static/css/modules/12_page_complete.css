@@ -1,0 +1,46 @@
+/* TU_Air/tu_air/static/css/modules/12_page_complete.css */
+/* (!!! 새 파일 !!!) */
+
+/* --- 12. 예약 완료 (booking_complete.html) 스타일 --- */
+
+.booking-complete-box {
+    text-align: center;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+.booking-complete-box p {
+    font-size: 18px;
+    color: #555;
+    margin: 0 0 10px 0;
+}
+.booking-complete-box strong {
+    font-size: 32px;
+    font-weight: 700;
+    color: #D90429;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    background-color: #fff;
+    border: 1px dashed #D90429;
+    border-radius: 4px;
+    display: inline-block;
+}
+.complete-message {
+    margin-top: 25px;
+    font-size: 16px;
+    color: #333;
+    line-height: 1.6;
+}
+.complete-message strong {
+    font-size: 16px;
+    color: #D90429;
+    background: none;
+    border: none;
+    padding: 0;
+}
+.complete-message .icon-warning {
+    font-style: normal;
+    font-weight: bold;
+    color: #004a99;
+}

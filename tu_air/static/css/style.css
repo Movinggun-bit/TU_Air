@@ -37,3 +37,6 @@
 
 /* 11. 예약 확인 (review) 스타일 */
 @import url("modules/11_page_review.css");
+
+/* 12. 예약 완료 (complete) 스타일 */
+@import url("modules/12_page_complete.css");

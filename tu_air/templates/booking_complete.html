@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}예약 완료 - TU Air{% endblock %}
+
+{% block content %}
+<div class="register-container"> 
+    
+    {% if booking_id %}
+        <h1 class="register-title">예약이 완료되었습니다!</h1>
+        <div class="booking-complete-box">
+            <p>예약 번호</p>
+            <strong>{{ booking_id }}</strong>
+            <div class="complete-message">
+                <i class="icon-warning">ⓘ</i>
+                예약 번호로 '예약 조회'가 가능하니,
+                <strong>반드시 예약 번호를 기억해 주세요.</strong><br>
+            </div>
+            <a href="{{ url_for('main.home') }}" class="btn-register-submit">
+                홈으로
+            </a>
+        </div>
+    {% else %}
+        <h1 class="register-title">오류</h1>
+        <div class="booking-complete-box">
+            <p>잘못된 접근이거나 예약 정보를 찾을 수 없습니다.</p>
+            <a href="{{ url_for('main.home') }}" class="btn-register-submit">
+                홈으로
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

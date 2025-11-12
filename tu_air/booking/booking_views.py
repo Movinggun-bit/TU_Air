@@ -3,7 +3,7 @@
 
 from . import booking_bp
 from ..extensions import db
-from ..models import Flight, Member, Airport, Seat, Flight_Seat_Availability, Booking, Passenger, Payment
+from ..models import Flight, Member, Guest, Airport, Seat, Flight_Seat_Availability, Booking, Passenger, Payment
 from flask import render_template, request, flash, redirect, url_for, jsonify, session, g
 import datetime
 from functools import wraps
@@ -111,10 +111,17 @@ def passenger_info():
                 guest_dob_month = request.form.get('guest_dob_month')
                 guest_dob_day = request.form.get('guest_dob_day')
                 
-                # (비회원 생년월일 조합)
-                guest_dob = datetime.date(int(guest_dob_year), int(guest_dob_month), int(guest_dob_day))
-                
-                # (TODO: 이 정보를 Guest 테이블에 INSERT...)
+                # (날짜 변환은 finalize에서 수행, 세션에는 문자열로 저장)
+                guest_details = {
+                    "name": guest_name,
+                    "nationality": guest_nationality,
+                    "dob_year": guest_dob_year,
+                    "dob_month": guest_dob_month,
+                    "dob_day": guest_dob_day,
+                    "email": guest_email,
+                    "phone": guest_phone
+                }
+                session['pending_booking']['guest_details'] = guest_details
 
             # (2. 탑승객 정보 - R3)
             pax_count = booking_info.get('passenger_count', 0)
@@ -419,9 +426,37 @@ def finalize_booking():
     if not booking_info:
         flash('예약 정보가 만료되었습니다.')
         return redirect(url_for('main.home'))
+    
+    is_guest_booking = session.get('is_guest', False)
 
     try:
-        # (1. Booking 테이블 INSERT)
+        guest_id_to_save = None
+        
+        # [!!!] (R3) 1. (비회원일 경우) Guest 테이블 INSERT [!!!]
+        if is_guest_booking:
+            guest_data = booking_info.get('guest_details')
+            if not guest_data:
+                raise Exception("비회원 예약자 정보가 세션에 없습니다.")
+            
+            guest_dob = datetime.date(
+                int(guest_data['dob_year']), 
+                int(guest_data['dob_month']), 
+                int(guest_data['dob_day'])
+            )
+            
+            new_guest = Guest(
+                Name=guest_data['name'],
+                Nationality=guest_data['nationality'],
+                Date_OF_Birth=guest_dob,
+                Email=guest_data['email'],
+                Phone=guest_data['phone']
+            )
+            db.session.add(new_guest)
+            # (DB에 flush하여 auto-increment된 Guest_ID를 미리 가져옴)
+            db.session.flush()
+            guest_id_to_save = new_guest.Guest_ID
+
+        # (2. Booking 테이블 INSERT)
         new_booking_id = generate_unique_booking_id(15)
         new_booking = Booking(
             Booking_ID=new_booking_id,
@@ -506,11 +541,27 @@ def finalize_booking():
         session.pop('pending_booking', None)
         session.pop('is_guest', None)
         
-        flash('항공권 예약 및 결제가 성공적으로 완료되었습니다.')
-        return redirect(url_for('mypage.mypage'))
+        if is_guest_booking:
+            # (R1, R2) 비회원은 예약 완료 페이지로 (예약 번호 전달)
+            return redirect(url_for('booking.booking_complete', booking_id=new_booking_id))
+        else:
+            # (회원은 마이페이지로)
+            flash('항공권 예약 및 결제가 성공적으로 완료되었습니다.')
+            return redirect(url_for('mypage.mypage'))
 
     except Exception as e:
         db.session.rollback() # (오류 발생 시 모든 작업 롤백)
         flash(f'예약 처리 중 심각한 오류가 발생했습니다: {e}')
         return redirect(url_for('booking.review_booking'))
     
+# [!!!] (신규) 6. 비회원 예약 완료 페이지 (GET) [!!!]
+@booking_bp.route('/complete/<string:booking_id>', methods=['GET'])
+def booking_complete(booking_id):
+    """ (R1, R2) 비회원 예약 완료 시 예약 번호와 메시지를 보여줍니다. """
+    
+    booking = Booking.query.get(booking_id)
+    if not booking:
+        # (잘못된 접근 시, 예약 번호 없이 페이지만 표시)
+        return render_template('booking_complete.html', booking_id=None)
+        
+    return render_template('booking_complete.html', booking_id=booking.Booking_ID)

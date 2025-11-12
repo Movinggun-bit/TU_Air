@@ -22,8 +22,8 @@
                     → 
                     {{ outbound_flight.arrival_airport.City }} ({{ outbound_flight.Arrival_Airport_Code }})
                 </p>
-                <p>출발: {{ outbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ outbound_flight.Departure_Gate }})</p>
-                <p>도착: {{ outbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ outbound_flight.Arrival_Gate }})</p>
+                <p>출발: {{ outbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p>도착: {{ outbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</p>
             </div>
             {% if inbound_flight %}
             <div class="review-flight-info" style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
@@ -33,8 +33,8 @@
                     → 
                     {{ inbound_flight.arrival_airport.City }} ({{ inbound_flight.Arrival_Airport_Code }})
                 </p>
-                <p>출발: {{ inbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ inbound_flight.Departure_Gate }})</p>
-                <p>도착: {{ inbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }} (게이트: {{ inbound_flight.Arrival_Gate }})</p>
+                <p>출발: {{ inbound_flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p>도착: {{ inbound_flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</p>
             </div>
             {% endif %}
         </div>

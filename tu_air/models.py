@@ -24,6 +24,18 @@ class Member(db.Model):
     def __repr__(self):
         return f"<Member {self.Member_ID} ({self.Name})>"
 
+class Guest(db.Model):
+    __tablename__ = 'guest'
+    Guest_ID = db.Column(db.INT, primary_key=True, autoincrement=True)
+    Name = db.Column(db.String(25), nullable=False)
+    Nationality = db.Column(db.String(20), nullable=False)
+    Date_OF_Birth = db.Column(db.DATE, nullable=False)
+    Email = db.Column(db.String(30), nullable=False)
+    Phone = db.Column(db.String(20), nullable=False)
+
+    # (관계: 1명의 비회원은 N개의 예약을 가질 수 있음)
+    bookings = db.relationship('Booking', back_populates='guest', lazy=True)
+
 class Staff(db.Model):
     __tablename__ = 'staff' 
     Staff_ID = db.Column(db.String(15), primary_key=True)
@@ -65,7 +77,7 @@ class Booking(db.Model):
     __tablename__ = 'booking'
     Booking_ID = db.Column(db.String(15), primary_key=True)
     Member_ID = db.Column(db.String(20), db.ForeignKey('member.Member_ID'), nullable=True)
-    Guest_ID = db.Column(db.INT, nullable=True) # (Guest 모델은 생략)
+    Guest_ID = db.Column(db.INT, db.ForeignKey('guest.Guest_ID'), nullable=True)
     Outbound_Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), nullable=False)
     Return_Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), nullable=True)
     Booking_Date = db.Column(db.DATETIME, nullable=False)
@@ -75,7 +87,7 @@ class Booking(db.Model):
     # --- [관계 설정 3] ---
     # Booking(N)이 Member(1)에 속합니다.
     member = db.relationship('Member', back_populates='bookings')
-    
+    guest = db.relationship('Guest', back_populates='bookings')
     # Booking(1)이 Flight(N)를 참조합니다.
     outbound_flight = db.relationship('Flight', foreign_keys=[Outbound_Flight_ID])
     return_flight = db.relationship('Flight', foreign_keys=[Return_Flight_ID])
