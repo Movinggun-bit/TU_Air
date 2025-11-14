@@ -23,16 +23,24 @@ def member_login_required(f):
 @mypage_bp.route('/mypage')
 @member_login_required
 def mypage():
-    # g.user는 auth.load_logged_in_user가 이미 가져왔습니다.
-    # models.py의 'bookings' 관계(relationship)를 사용하여
-    # 이 사용자의 모든 예약 내역을 DB에서 가져옵니다.
-    # (Booking, Payment, Passenger, Flight, Airport, Boarding_Pass 모델이 모두 연결됨)
+    # [!!!] (R2) (수정) 예약을 '진행 중'과 '취소'로 분리하여 조회 [!!!]
     
-    user_bookings = Booking.query.filter_by(Member_ID=g.user.Member_ID)\
-                                 .order_by(Booking.Booking_Date.desc())\
-                                 .all()
+    # 1. 진행 중인 예약 (Reserved, Check-In)
+    active_bookings = Booking.query.filter(
+        Booking.Member_ID == g.user.Member_ID,
+        Booking.Status.in_(['Reserved', 'Check-In'])
+    ).order_by(Booking.Booking_Date.desc()).all()
 
-    return render_template('mypage.html', user=g.user, bookings=user_bookings)
+    # 2. 취소된 예약 (Canceled, Partial_Canceled)
+    canceled_bookings = Booking.query.filter(
+        Booking.Member_ID == g.user.Member_ID,
+        Booking.Status.in_(['Canceled', 'Partial_Canceled'])
+    ).order_by(Booking.Booking_Date.desc()).all()
+
+    return render_template('mypage.html', 
+                           user=g.user, 
+                           bookings=active_bookings, # (기존 'bookings' 변수에는 활성 예약 전달)
+                           canceled_bookings=canceled_bookings) # (새 변수 전달)
 
 # --- (3) 회원 정보 수정 (POST) ---
 @mypage_bp.route('/mypage/update_info', methods=['POST'])

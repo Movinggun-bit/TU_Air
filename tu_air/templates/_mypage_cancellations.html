@@ -1,0 +1,40 @@
+<h2>취소 내역 (총 {{ canceled_bookings|length }}건)</h2>
+{% if canceled_bookings %}
+    <div class="booking-list">
+        {% for booking in canceled_bookings %}
+        <div class="booking-card">
+            
+            <div class="booking-card-header">
+                <strong>예약 번호: {{ booking.Booking_ID }}</strong>
+                <span>예약일: {{ booking.Booking_Date.strftime('%Y-%m-%d') }}</span>
+                <span class="booking-status-{{ booking.Status|lower }}">{{ booking.Status }}</span>
+            </div>
+            
+            <div class="booking-card-body">
+                {% include '_booking_details_content.html' %}
+                
+                <hr class="mypage-divider">
+                <div class="refund-info-box">
+                    <h4>환불 정보</h4>
+                    {% if booking.payments %}
+                        {% set payment = booking.payments[0] %}
+                        <p>
+                            환불 금액: 
+                            <strong>
+                                KRW {{ "{:,.0f}".format(payment.refunded_amount|default(0) )}}
+                            </strong>
+                        </p>
+                        <p>
+                            결제/환불일: {{ payment.Payment_Date.strftime('%Y-%m-%d') }}
+                        </p>
+                    {% else %}
+                        <p>환불 정보를 찾을 수 없습니다.</p>
+                    {% endif %}
+                </div>
+            </div>            
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="no-results">취소 내역이 없습니다.</p>
+{% endif %}

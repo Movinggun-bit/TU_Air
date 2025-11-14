@@ -16,7 +16,8 @@
     <div class="mypage-layout">
         <div class="mypage-nav">
             <button class="mypage-tab active" data-tab="info">내 정보 관리</button>
-            <button class="mypage-tab" data-tab="bookings">예약 내역</button>
+            <button class="mypage-tab" data-tab="active_bookings">예약 내역</button>
+            <button class="mypage-tab" data-tab="canceled_bookings">취소 내역</button>
             </div>
 
         <div class="mypage-content">
@@ -24,9 +25,14 @@
                 {% include '_mypage_info.html' %}
             </div>
             
-            <div id="tab-bookings" class="mypage-pane">
+            <div id="tab-active_bookings" class="mypage-pane">
                 {% include '_mypage_bookings.html' %}
             </div>
+
+            <div id="tab-canceled_bookings" class="mypage-pane">
+                {% include '_mypage_cancellations.html' %}
+            </div>
+
         </div>
     </div>
 </div>

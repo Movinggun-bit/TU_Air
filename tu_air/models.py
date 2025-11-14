@@ -127,7 +127,7 @@ class Payment(db.Model):
     Amount = db.Column(db.DECIMAL(10, 2), nullable=False)
     Payment_Date = db.Column(db.DATETIME, nullable=False)
     status = db.Column(db.Enum('Paid', 'Refunded'), nullable=False, default='Paid')
-
+    refunded_amount = db.Column(db.DECIMAL(10, 2), nullable=False, default=0.00)
     # --- [관계 설정 5] ---
     booking = db.relationship('Booking', back_populates='payments')
 

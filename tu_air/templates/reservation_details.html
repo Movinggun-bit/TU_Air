@@ -25,15 +25,27 @@
         <div class="action-box">
             <div class="action-text">
                 <h4>좌석 변경</h4>
-                <p>※선택한 좌석을 변경할 수 있습니다.</p>
+                <p>※선택한 좌석을 변경할 수 있습니다. (출발 2시간 전까지 가능)</p>
             </div>
-            <a href="{{ url_for('booking.select_seat', direction='outbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
-                가는 편 좌석 변경
-            </a>
+
+            {% set outbound_time_left = (booking.outbound_flight.Departure_Time - now).total_seconds() %}
+            {% if booking.Status == 'Reserved' and outbound_time_left > 7200 %}
+                <a href="{{ url_for('booking.select_seat', direction='outbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
+                    가는 편 좌석 변경
+                </a>
+            {% else %}
+                <span class="btn-action disabled">가는 편 변경 불가</span>
+            {% endif %}
+
             {% if booking.return_flight %}
-            <a href="{{ url_for('booking.select_seat', direction='inbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
-                오는 편 좌석 변경
-            </a>
+                {% set inbound_time_left = (booking.return_flight.Departure_Time - now).total_seconds() %}
+                {% if booking.Status in ['Reserved', 'Partial_Canceled'] and inbound_time_left > 7200 %}
+                    <a href="{{ url_for('booking.select_seat', direction='inbound', change_booking_id=booking.Booking_ID) }}" class="btn-action">
+                        오는 편 좌석 변경
+                    </a>
+                {% else %}
+                    <span class="btn-action disabled">오는 편 변경 불가</span>
+                {% endif %}
             {% endif %}
         </div>
 
