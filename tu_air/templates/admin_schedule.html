@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}항공편 편성 - 관리자{% endblock %}
+
+{% block content %}
+<div class="register-container" style="max-width: 900px;"> 
+    <h1 class="register-title">항공편 편성 (Scheduler)</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div style="display: none;">
+        <input type="hidden" id="trip_type_input" value="one_way">
+    </div>
+
+    <form class="register-form" method="POST" action="{{ url_for('admin.schedule_dashboard') }}">
+        
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label for="flight_no">항공편명 *</label>
+                <input type="text" id="flight_no" name="flight_no" class="form-input-register" 
+                       placeholder="예: TU1010" required>
+            </div>
+            <div class="form-group-register">
+                <label for="aircraft_id" class="label-with-button">
+                    항공기 *
+                    <button type="button" class="btn-select-aircraft-small" id="select_aircraft_button">
+                        항공기 선택
+                    </button>
+                </label>
+                <input type="text" id="aircraft_id" name="aircraft_id" class="form-input-register" 
+                       placeholder="항공기를 선택하세요" value="{{ selected_aircraft_id or '' }}" readonly
+                       data-capacity="{{ selected_aircraft_capacity or '' }}">
+            </div>
+        </div>
+
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label>출발지 *</label>
+                <input type="hidden" name="departure_airport" id="departure_airport" required>
+                <button type="button" class="form-input-btn form-input-register" id="select_departure_airport">
+                    <span class="placeholder">출발 공항 선택</span>
+                    <strong class="main-text"></strong>
+                    <span class="sub-text"></span>
+                </button>
+            </div>
+            <div class="form-group-register">
+                <label>도착지 *</label>
+                <input type="hidden" name="arrival_airport" id="arrival_airport" required>
+                <button type="button" class="form-input-btn form-input-register" id="select_arrival_airport">
+                    <span class="placeholder">도착 공항 선택</span>
+                    <strong class="main-text"></strong>
+                    <span class="sub-text"></span>
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label for="dep_time">출발 시간 (Local) *</label>
+                <div class="datetime-picker-wrapper" id="dep_time_wrapper">
+                    <input type="text" id="dep_time_display" class="form-input-register datetime-display" 
+                           placeholder="날짜와 시간을 선택하세요" data-input>
+                    <input type="hidden" id="dep_time" name="dep_time" required>
+                </div>
+            </div>
+            <div class="form-group-register">
+                <label for="arr_time">도착 시간 (Local) *</label>
+                <div class="datetime-picker-wrapper" id="arr_time_wrapper">
+                    <input type="text" id="arr_time_display" class="form-input-register datetime-display" 
+                           placeholder="날짜와 시간을 선택하세요" data-input>
+                    <input type="hidden" id="arr_time" name="arr_time" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label for="dep_gate">출발 게이트 *</label>
+                <input type="text" id="dep_gate" name="dep_gate" class="form-input-register" 
+                       placeholder="예: 10A" required>
+            </div>
+            <div class="form-group-register">
+                <label for="arr_gate">도착 게이트 *</label>
+                <input type="text" id="arr_gate" name="arr_gate" class="form-input-register" 
+                       placeholder="예: B5" required>
+            </div>
+        </div>
+        
+        <hr class="register-divider">
+        
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label for="price_econ">이코노미 가격 (KRW) *</label>
+                <input type="number" id="price_econ" name="price_econ" class="form-input-register" 
+                       min="0" step="1000" placeholder="예: 1500000" required>
+            </div>
+            <div class="form-group-register">
+                <label for="price_biz">비즈니스 가격 (KRW) <span class="price-required">*</span></label>
+                <input type="number" id="price_biz" name="price_biz" class="form-input-register" 
+                       min="0" step="1000" placeholder="예: 3000000" disabled>
+            </div>
+            <div class="form-group-register">
+                <label for="price_first">퍼스트 가격 (KRW) <span class="price-required">*</span></label>
+                <input type="number" id="price_first" name="price_first" class="form-input-register" 
+                       min="0" step="1000" placeholder="예: 5000000" disabled>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn-register-submit">신규 항공편 편성</button>
+    </form>
+</div>
+
+{% include '_airport_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('main.static', filename='js/main.js') }}?v=4"></script>
+
+<script>
+    // [!!!] (R2) (신규) 'main.js'의 오류 방지용 더미(dummy) 요소 생성 [!!!]
+    // main.js는 Flatpickr(#flight_datepicker_input)를 찾으려 하므로,
+    // 이 페이지에 해당 ID가 없으면 오류가 날 수 있습니다.
+    // (V10에서 사용한 ID 강제 변경 대신, 더미 div를 사용)
+    if (!document.getElementById('datepicker_wrapper')) {
+        const dummyWrapper = document.createElement('div');
+        dummyWrapper.id = 'datepicker_wrapper';
+        dummyWrapper.style.display = 'none';
+        
+        const dummyInput = document.createElement('input');
+        dummyInput.id = 'flight_datepicker_input';
+        dummyWrapper.appendChild(dummyInput);
+        
+        document.body.appendChild(dummyWrapper);
+    }
+
+    document.getElementById('select_aircraft_button').addEventListener('click', function() {
+        window.location.href = "{{ url_for('admin.aircraft_selection') }}";
+    });
+
+    // 항공기 크기에 따른 가격 필드 활성화/비활성화
+    function updatePriceFields() {
+        const aircraftInput = document.getElementById('aircraft_id');
+        if (!aircraftInput) return;
+        
+        const capacity = parseInt(aircraftInput.getAttribute('data-capacity')) || 0;
+        
+        const priceBiz = document.getElementById('price_biz');
+        const priceFirst = document.getElementById('price_first');
+        const priceBizLabel = document.querySelector('label[for="price_biz"]');
+        const priceFirstLabel = document.querySelector('label[for="price_first"]');
+        
+        if (!priceBiz || !priceFirst || !priceBizLabel || !priceFirstLabel) return;
+        
+        const priceBizRequired = priceBizLabel.querySelector('.price-required');
+        const priceFirstRequired = priceFirstLabel.querySelector('.price-required');
+        
+        // 모든 필드 초기화
+        priceBiz.disabled = true;
+        priceBiz.value = '';
+        priceBiz.removeAttribute('required');
+        if (priceBizRequired) priceBizRequired.style.display = 'none';
+        
+        priceFirst.disabled = true;
+        priceFirst.value = '';
+        priceFirst.removeAttribute('required');
+        if (priceFirstRequired) priceFirstRequired.style.display = 'none';
+        
+        // 항공기 크기에 따라 필드 활성화
+        if (capacity > 179) {  // 중형 이상
+            priceBiz.disabled = false;
+            priceBiz.setAttribute('required', 'required');
+            if (priceBizRequired) priceBizRequired.style.display = 'inline';
+        }
+        
+        if (capacity >= 300) {  // 대형
+            priceFirst.disabled = false;
+            priceFirst.setAttribute('required', 'required');
+            if (priceFirstRequired) priceFirstRequired.style.display = 'inline';
+        }
+    }
+    
+    // 항공기 입력 필드 변경 감지
+    const aircraftInput = document.getElementById('aircraft_id');
+    if (aircraftInput) {
+        // 초기 로드 시 실행
+        updatePriceFields();
+        
+        // MutationObserver로 data-capacity 변경 감지
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'data-capacity') {
+                    updatePriceFields();
+                }
+            });
+        });
+        observer.observe(aircraftInput, { attributes: true });
+    }
+    
+    // Flatpickr로 시간 입력 개선 (wrap 옵션 사용)
+    const depTimeWrapper = document.getElementById('dep_time_wrapper');
+    const arrTimeWrapper = document.getElementById('arr_time_wrapper');
+    const depTimeDisplay = document.getElementById('dep_time_display');
+    const arrTimeDisplay = document.getElementById('arr_time_display');
+    const depTimeHidden = document.getElementById('dep_time');
+    const arrTimeHidden = document.getElementById('arr_time');
+    
+    if (depTimeWrapper && depTimeDisplay && depTimeHidden) {
+        const depPicker = flatpickr(depTimeWrapper, {
+            wrap: true,
+            input: depTimeDisplay,
+            enableTime: true,
+            noCalendar: false,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            locale: "ko",
+            minDate: "today",
+            allowInput: true,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    // 초 단위를 00으로 설정
+                    const formattedDate = date.getFullYear() + '-' + 
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(date.getDate()).padStart(2, '0') + 'T' + 
+                        String(date.getHours()).padStart(2, '0') + ':' + 
+                        String(date.getMinutes()).padStart(2, '0') + ':00';
+                    depTimeHidden.value = formattedDate;
+                }
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                // 달력이 닫힐 때도 값 업데이트
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const formattedDate = date.getFullYear() + '-' + 
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(date.getDate()).padStart(2, '0') + 'T' + 
+                        String(date.getHours()).padStart(2, '0') + ':' + 
+                        String(date.getMinutes()).padStart(2, '0') + ':00';
+                    depTimeHidden.value = formattedDate;
+                }
+            }
+        });
+    }
+    
+    if (arrTimeWrapper && arrTimeDisplay && arrTimeHidden) {
+        const arrPicker = flatpickr(arrTimeWrapper, {
+            wrap: true,
+            input: arrTimeDisplay,
+            enableTime: true,
+            noCalendar: false,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            locale: "ko",
+            minDate: "today",
+            allowInput: true,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    // 초 단위를 00으로 설정
+                    const formattedDate = date.getFullYear() + '-' + 
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(date.getDate()).padStart(2, '0') + 'T' + 
+                        String(date.getHours()).padStart(2, '0') + ':' + 
+                        String(date.getMinutes()).padStart(2, '0') + ':00';
+                    arrTimeHidden.value = formattedDate;
+                }
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                // 달력이 닫힐 때도 값 업데이트
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const formattedDate = date.getFullYear() + '-' + 
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(date.getDate()).padStart(2, '0') + 'T' + 
+                        String(date.getHours()).padStart(2, '0') + ':' + 
+                        String(date.getMinutes()).padStart(2, '0') + ':00';
+                    arrTimeHidden.value = formattedDate;
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
