@@ -4,8 +4,8 @@
 from . import admin_bp
 from ..extensions import db
 # (!!! 신규: 필요한 모든 모델 임포트 !!!)
-from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability
-from flask import render_template, redirect, url_for, session, g, flash, request
+from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability, Staff, Crew_Assignment
+from flask import render_template, redirect, url_for, session, g, flash, request, current_app
 from functools import wraps
 import datetime
 
@@ -247,6 +247,102 @@ def aircraft_schedule(aircraft_id):
         schedule[month][day].append(flight)
 
     return render_template('aircraft_schedule.html', aircraft=aircraft, schedule=schedule)
+
+# [!!!] (신규) 4. 직원 배정 화면 [!!!]
+@admin_bp.route('/assign_staff', methods=['GET', 'POST'])
+@staff_login_required
+@role_required('Scheduler')
+def assign_staff():
+    """ 직원 배정 화면 """
+    if request.method == 'POST':
+        # 직원 배정 데이터 처리
+        flight_id = request.form.get('flight_id')
+        pilot_id = request.form.get('pilot_id')
+        co_pilot_id = request.form.get('co_pilot_id')
+        cabin_crew_ids = request.form.getlist('cabin_crew_ids')
+
+        if not (pilot_id and co_pilot_id and len(cabin_crew_ids) == 2):
+            flash('모든 직원 배정 정보를 입력해주세요.', 'error')
+            return redirect(url_for('admin.assign_staff'))
+
+        try:
+            # 트랜잭션 시작
+            new_flight = Flight.query.get(flight_id)
+            if not new_flight:
+                raise ValueError('항공편 정보를 찾을 수 없습니다.')
+
+            # 직원 배정 저장
+            db.session.add(Crew_Assignment(Assignment_ID=f'{flight_id}-P', Flight_ID=flight_id, Staff_ID=pilot_id))
+            db.session.add(Crew_Assignment(Assignment_ID=f'{flight_id}-CP', Flight_ID=flight_id, Staff_ID=co_pilot_id))
+            for i, crew_id in enumerate(cabin_crew_ids):
+                db.session.add(Crew_Assignment(Assignment_ID=f'{flight_id}-CC{i+1}', Flight_ID=flight_id, Staff_ID=crew_id))
+
+            # DB 커밋
+            db.session.commit()
+            flash('직원 배정이 완료되었습니다.', 'success')
+            return redirect(url_for('admin.schedule_dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'직원 배정 중 오류가 발생했습니다: {e}', 'error')
+            return redirect(url_for('admin.assign_staff'))
+
+    # 직원 목록 가져오기
+    pilots = Staff.query.filter_by(Role='Pilot').all()
+    co_pilots = Staff.query.filter_by(Role='Co-Pilot').all()
+    cabin_crews = Staff.query.filter_by(Role='Cabin Crew').all()
+
+    # 디버깅 로그 추가
+    current_app.logger.debug(f"Pilots: {pilots}")
+    current_app.logger.debug(f"Co-Pilots: {co_pilots}")
+    current_app.logger.debug(f"Cabin Crews: {cabin_crews}")
+
+    return render_template('assign_staff.html', pilots=pilots, co_pilots=co_pilots, cabin_crews=cabin_crews)
+
+# [!!!] (신규) 5. 특정 직원의 일정 조회 [!!!]
+@admin_bp.route('/staff/<int:staff_id>/schedule', methods=['GET'])
+@staff_login_required
+@role_required('Scheduler')
+def staff_schedule(staff_id):
+    staff = Staff.query.get_or_404(staff_id)
+
+    # 직원의 일정 데이터를 가져오기
+    crew_assignments = Crew_Assignment.query.filter_by(Staff_ID=staff_id).all()
+
+    # 월별 일정 데이터 구성
+    schedule = {}
+    for assignment in crew_assignments:
+        flight = assignment.flight
+        month = flight.Departure_Time.strftime('%Y-%m')
+        day = flight.Departure_Time.strftime('%Y-%m-%d')
+
+        if month not in schedule:
+            schedule[month] = {}
+        if day not in schedule[month]:
+            schedule[month][day] = []
+
+        schedule[month][day].append(flight)
+
+    return render_template('staff_schedule.html', staff=staff, schedule=schedule)
+
+# [!!!] (신규) 6. 직원 선택 화면 [!!!]
+@admin_bp.route('/staff/selection', methods=['GET'])
+def staff_selection():
+    role = request.args.get('role')
+    if not role:
+        flash('역할 정보가 누락되었습니다. 다시 시도해주세요.', 'error')
+        return redirect(url_for('admin.assign_staff'))
+
+    staff_list = Staff.query.filter_by(Role=role).all()
+    if role == 'captain':
+        return render_template('Pilot_selection.html', staff_list=staff_list, role=role)
+    elif role == 'co_pilot':
+        return render_template('Co-Pilot_selection.html', staff_list=staff_list, role=role)
+    elif role == 'crew':
+        return render_template('Cabin_Crew_selection.html', staff_list=staff_list, role=role)
+    else:
+        flash('잘못된 역할 정보입니다.', 'error')
+        return redirect(url_for('admin.assign_staff'))
 
 def get_aircraft_data():
     """항공기 데이터를 초기화하는 함수"""
