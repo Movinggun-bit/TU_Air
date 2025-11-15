@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}인사관리 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">인사관리</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <div class="hr-stats-section">
+            <h2>직업별 통계</h2>
+            <div class="stats-grid">
+                {% for role_name, count in role_stats.items() %}
+                <div class="stat-card">
+                    <div class="stat-label">{{ role_name }}</div>
+                    <div class="stat-value">{{ count }}명</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="hr-staff-list-section">
+            <h2>전체 직원 목록</h2>
+            <div class="staff-list-table-container">
+                <table class="staff-table">
+                    <thead>
+                        <tr>
+                            <th>직원 ID</th>
+                            <th>이름</th>
+                            <th>직업</th>
+                            <th>부서</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if all_staff %}
+                            {% for staff_member in all_staff %}
+                            <tr>
+                                <td>{{ staff_member.Staff_ID }}</td>
+                                <td>{{ staff_member.Name }}</td>
+                                <td>{{ staff_member.Role }}</td>
+                                <td>{{ staff_member.Department or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="no-data">등록된 직원이 없습니다.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="hr-actions-section">
+            <h2>인사 관리 기능</h2>
+            <div class="action-buttons">
+                <button class="btn-action" disabled>채용 관리</button>
+                <button class="btn-action" disabled>평가 관리</button>
+                <button class="btn-action" disabled>보상 관리</button>
+            </div>
+            <p class="info-text">* 향후 기능 확장 예정</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -47,5 +47,5 @@
 /* 14. 탑승권 (Boarding Pass) 스타일 */
 @import url("modules/14_page_boarding_pass.css");
 
-/* 15. 관리자 페이지 (Admin) 스타일 */
-@import url("modules/15_page_admin.css");
+/* 15. 직원 페이지 (staff) 스타일 */
+@import url("modules/15_page_staff.css");

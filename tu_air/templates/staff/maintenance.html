@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}정비내역 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">정비내역</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <div class="maintenance-table-container">
+            <table class="staff-table">
+                <thead>
+                    <tr>
+                        <th>항공기 ID</th>
+                        <th>모델</th>
+                        <th>제조사</th>
+                        <th>좌석 수</th>
+                        <th>최근 비행 횟수</th>
+                        <th>마지막 정비일</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if maintenance_data %}
+                        {% for data in maintenance_data %}
+                        <tr>
+                            <td>{{ data.aircraft.Aircraft_ID }}</td>
+                            <td>{{ data.aircraft.Model }}</td>
+                            <td>{{ data.aircraft.Manufacturer }}</td>
+                            <td>{{ data.aircraft.Seat_Capacity }}</td>
+                            <td>{{ data.recent_flights }}</td>
+                            <td>{{ data.last_maintenance }}</td>
+                            <td>
+                                <span class="status-badge status-ok">정상</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="no-data">조회된 정비내역이 없습니다.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

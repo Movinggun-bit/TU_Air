@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}CEO 대시보드 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">CEO 대시보드</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <div class="dashboard-overview-section">
+            <h2>전체 현황</h2>
+            <div class="dashboard-cards">
+                <div class="dashboard-card">
+                    <div class="card-label">전체 직원 수</div>
+                    <div class="card-value">{{ total_staff }}명</div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-label">총 매출액</div>
+                    <div class="card-value">KRW {{ "{:,.0f}".format(total_revenue) }}</div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-label">오늘의 비행편</div>
+                    <div class="card-value">{{ today_flights }}편</div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-label">오늘의 예약</div>
+                    <div class="card-value">{{ today_bookings }}건</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-role-section">
+            <h2>직업별 직원 수</h2>
+            <div class="role-stats-grid">
+                {% for role_name, count in role_counts.items() %}
+                <div class="role-stat-card">
+                    <div class="role-stat-label">{{ role_name }}</div>
+                    <div class="role-stat-value">{{ count }}명</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
