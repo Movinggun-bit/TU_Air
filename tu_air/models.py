@@ -43,6 +43,10 @@ class Staff(db.Model):
     Name = db.Column(db.String(25), nullable=False)
     Role = db.Column(db.Enum('Pilot', 'Co-Pilot', 'Cabin Crew', 'Engineer', 'Ground Staff', 'HR', 'Scheduler', 'CEO', 'marketer'), nullable=False)
     Department = db.Column(db.String(50), nullable=True)
+    
+    # (관계: 1명의 직원은 N개의 항공편에 배정될 수 있음)
+    crew_assignments = db.relationship('Crew_Assignment', back_populates='staff', lazy=True)
+    
     def __repr__(self):
         return f"<Staff {self.Staff_ID} ({self.Name})>"
 
@@ -67,12 +71,14 @@ class Flight(db.Model):
     Arrival_Time = db.Column(db.DATETIME, nullable=False)
     Arrival_Gate = db.Column(db.String(10), nullable=False)
     Flight_Status = db.Column(db.Enum('On_Time', 'Delayed', 'Canceled'), nullable=False, default='On_Time')
+    Status_Reason = db.Column(db.Text, nullable=True, default=None)
     
     # --- [관계 설정 2] ---
     # Flight가 Airport를 'departure_airport'와 'arrival_airport'로 참조합니다.
     departure_airport = db.relationship('Airport', foreign_keys=[Departure_Airport_Code])
     arrival_airport = db.relationship('Airport', foreign_keys=[Arrival_Airport_Code])
     seat_availabilities = db.relationship('Flight_Seat_Availability', back_populates='flight')
+    crew_assignments = db.relationship('Crew_Assignment', back_populates='flight', lazy=True)
 
 # --- [신규] Booking 모델 (Member, Flight와 관계 설정) ---
 class Booking(db.Model):
@@ -188,3 +194,30 @@ class Flight_Seat_Availability(db.Model):
     # (관계: N:1)
     flight = db.relationship('Flight', back_populates='seat_availabilities')
     seat = db.relationship('Seat', back_populates='flight_availabilities')
+
+# --- [신규] Crew_Assignment 모델 (Flight, Staff와 관계 설정) ---
+class Crew_Assignment(db.Model):
+    __tablename__ = 'crew_assignment'
+    Assignment_ID = db.Column(db.String(15), primary_key=True)
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), nullable=False)
+    Staff_ID = db.Column(db.String(15), db.ForeignKey('staff.Staff_ID'), nullable=False)
+    
+    # (관계: N:1)
+    flight = db.relationship('Flight', back_populates='crew_assignments')
+    staff = db.relationship('Staff', back_populates='crew_assignments')
+    
+    def __repr__(self):
+        return f"<Crew_Assignment {self.Assignment_ID} (Flight: {self.Flight_ID}, Staff: {self.Staff_ID})>"
+
+# --- [신규] Flight_Price 모델 (Flight와 관계 설정) ---
+class Flight_Price(db.Model):
+    __tablename__ = 'flight_price'
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), primary_key=True)
+    Class = db.Column(db.Enum('Economy', 'Business', 'First'), primary_key=True)
+    Price = db.Column(db.DECIMAL(10, 2), nullable=False)
+    
+    # (관계: N:1)
+    flight = db.relationship('Flight')
+    
+    def __repr__(self):
+        return f"<Flight_Price Flight: {self.Flight_ID}, Class: {self.Class}, Price: {self.Price}>"

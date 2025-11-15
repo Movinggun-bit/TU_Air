@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}스케줄러 대시보드 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">항공편 편성 관리</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <!-- 항공편 편성 폼 -->
+        <div class="schedule-section">
+            <h2>항공편 편성</h2>
+            <form method="POST" action="{{ url_for('staff.create_flight') }}" id="create-flight-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="flight_no">비행편 번호 *</label>
+                        <input type="text" id="flight_no" name="flight_no" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="aircraft_id">항공기 *</label>
+                        <select id="aircraft_id" name="aircraft_id" required onchange="checkAircraftSchedule()">
+                            <option value="">선택하세요</option>
+                            {% for aircraft in aircrafts %}
+                            <option value="{{ aircraft.Aircraft_ID }}">{{ aircraft.Aircraft_ID }} ({{ aircraft.Model }})</option>
+                            {% endfor %}
+                        </select>
+                        <div id="aircraft-schedule-info" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="departure_airport">출발 공항 *</label>
+                        <select id="departure_airport" name="departure_airport" required>
+                            <option value="">선택하세요</option>
+                            {% for airport in airports %}
+                            <option value="{{ airport.Airport_Code }}">{{ airport.City }} ({{ airport.Airport_Code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="arrival_airport">도착 공항 *</label>
+                        <select id="arrival_airport" name="arrival_airport" required>
+                            <option value="">선택하세요</option>
+                            {% for airport in airports %}
+                            <option value="{{ airport.Airport_Code }}">{{ airport.City }} ({{ airport.Airport_Code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="departure_time">출발 시간 *</label>
+                        <input type="datetime-local" id="departure_time" name="departure_time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="arrival_time">도착 시간 *</label>
+                        <input type="datetime-local" id="arrival_time" name="arrival_time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="departure_gate">출발 게이트 *</label>
+                        <input type="text" id="departure_gate" name="departure_gate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="arrival_gate">도착 게이트 *</label>
+                        <input type="text" id="arrival_gate" name="arrival_gate" required>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>요금 설정</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="economy_price">이코노미 가격</label>
+                            <input type="number" id="economy_price" name="economy_price" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="business_price">비즈니스 가격</label>
+                            <input type="number" id="business_price" name="business_price" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="first_price">퍼스트 가격</label>
+                            <input type="number" id="first_price" name="first_price" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>직원 배정</h3>
+                    <div class="form-grid form-grid-2x2">
+                        <div class="form-group">
+                            <label for="pilot_id">파일럿</label>
+                            <select id="pilot_id" name="pilot_id" size="4" onchange="checkStaffSchedule('pilot', this.value)">
+                                <option value="">선택하세요</option>
+                                {% for staff in crew_staff %}
+                                    {% if staff.Role == 'Pilot' %}
+                                    <option value="{{ staff.Staff_ID }}">{{ staff.Name }} ({{ staff.Staff_ID }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="pilot-schedule-info" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="copilot_id">코파일럿</label>
+                            <select id="copilot_id" name="copilot_id" size="4" onchange="checkStaffSchedule('copilot', this.value)">
+                                <option value="">선택하세요</option>
+                                {% for staff in crew_staff %}
+                                    {% if staff.Role == 'Co-Pilot' %}
+                                    <option value="{{ staff.Staff_ID }}">{{ staff.Name }} ({{ staff.Staff_ID }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="copilot-schedule-info" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cabin_crew_id_1">카빈크루 1</label>
+                            <select id="cabin_crew_id_1" name="cabin_crew_id" size="4" onchange="checkStaffSchedule('cabin_crew_1', this.value)">
+                                {% for staff in crew_staff %}
+                                    {% if staff.Role == 'Cabin Crew' %}
+                                    <option value="{{ staff.Staff_ID }}">{{ staff.Name }} ({{ staff.Staff_ID }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="cabin_crew_1-schedule-info" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cabin_crew_id_2">카빈크루 2</label>
+                            <select id="cabin_crew_id_2" name="cabin_crew_id" size="4" onchange="checkStaffSchedule('cabin_crew_2', this.value)">
+                                {% for staff in crew_staff %}
+                                    {% if staff.Role == 'Cabin Crew' %}
+                                    <option value="{{ staff.Staff_ID }}">{{ staff.Name }} ({{ staff.Staff_ID }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="cabin_crew_2-schedule-info" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary">항공편 편성</button>
+            </form>
+        </div>
+
+        <!-- 항공편 목록 -->
+        <div class="schedule-section">
+            <h2>항공편 목록 (최근 30일)</h2>
+            <div class="schedule-table-container">
+                <table class="staff-table">
+                    <thead>
+                        <tr>
+                            <th>비행편 번호</th>
+                            <th>항공기</th>
+                            <th>출발지</th>
+                            <th>출발 시간</th>
+                            <th>도착지</th>
+                            <th>도착 시간</th>
+                            <th>상태</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if flights %}
+                            {% for flight in flights %}
+                            <tr>
+                                <td>{{ flight.Flight_No }}</td>
+                                <td>{{ flight.Aircraft_ID }}</td>
+                                <td>{{ flight.departure_airport.City }} ({{ flight.Departure_Airport_Code }})</td>
+                                <td>{{ flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ flight.arrival_airport.City }} ({{ flight.Arrival_Airport_Code }})</td>
+                                <td>{{ flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ flight.Flight_Status.lower().replace('_', '-') }}">
+                                        {% if flight.Flight_Status == 'On_Time' %}정시
+                                        {% elif flight.Flight_Status == 'Delayed' %}지연
+                                        {% elif flight.Flight_Status == 'Canceled' %}취소
+                                        {% else %}{{ flight.Flight_Status }}{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if flight.Flight_Status != 'Canceled' %}
+                                    {% set dep_time_str = flight.Departure_Time.strftime('%Y-%m-%dT%H:%M') %}
+                                    {% set arr_time_str = flight.Arrival_Time.strftime('%Y-%m-%dT%H:%M') %}
+                                    <button onclick="openEditModal('{{ flight.Flight_ID }}', '{{ flight.Flight_No }}', '{{ dep_time_str }}', '{{ arr_time_str }}', '{{ flight.Departure_Gate }}', '{{ flight.Arrival_Gate }}')" class="btn-small">수정</button>
+                                    <button onclick="openCancelModal('{{ flight.Flight_ID }}', '{{ flight.Flight_No }}')" class="btn-small btn-danger">취소</button>
+                                    {% else %}
+                                    <span style="color: #999;">취소됨</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="no-data">조회된 항공편이 없습니다.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 수정 모달 -->
+<div id="editModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h2>항공편 수정</h2>
+        <form method="POST" action="" id="edit-flight-form">
+            <input type="hidden" id="edit_flight_id" name="flight_id">
+            <div class="form-group">
+                <label for="edit_departure_time">출발 시간</label>
+                <input type="datetime-local" id="edit_departure_time" name="departure_time">
+            </div>
+            <div class="form-group">
+                <label for="edit_arrival_time">도착 시간</label>
+                <input type="datetime-local" id="edit_arrival_time" name="arrival_time">
+            </div>
+            <div class="form-group">
+                <label for="edit_departure_gate">출발 게이트</label>
+                <input type="text" id="edit_departure_gate" name="departure_gate">
+            </div>
+            <div class="form-group">
+                <label for="edit_arrival_gate">도착 게이트</label>
+                <input type="text" id="edit_arrival_gate" name="arrival_gate">
+            </div>
+            <div class="form-group">
+                <label for="edit_status_reason">변경 사유 (시간 변경 시 필수)</label>
+                <textarea id="edit_status_reason" name="status_reason" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">수정</button>
+            <button type="button" class="btn-secondary" onclick="closeEditModal()">취소</button>
+        </form>
+    </div>
+</div>
+
+<!-- 취소 모달 -->
+<div id="cancelModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeCancelModal()">&times;</span>
+        <h2>항공편 취소</h2>
+        <form method="POST" action="" id="cancel-flight-form">
+            <input type="hidden" id="cancel_flight_id" name="flight_id">
+            <p>항공편을 취소하면 관련된 모든 예약이 취소되고 전액 환불됩니다.</p>
+            <div class="form-group">
+                <label for="cancel_reason">취소 사유 *</label>
+                <textarea id="cancel_reason" name="cancel_reason" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn-danger">취소 확인</button>
+            <button type="button" class="btn-secondary" onclick="closeCancelModal()">닫기</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkAircraftSchedule() {
+    const aircraftId = document.getElementById('aircraft_id').value;
+    if (!aircraftId) {
+        document.getElementById('aircraft-schedule-info').innerHTML = '';
+        return;
+    }
+    
+    fetch(`/staff/api/aircraft-schedule/${aircraftId}`)
+        .then(response => response.json())
+        .then(data => {
+            const infoDiv = document.getElementById('aircraft-schedule-info');
+            if (data.schedule && data.schedule.length > 0) {
+                infoDiv.innerHTML = `<strong>기존 스케줄:</strong> ${data.schedule.length}건`;
+            } else {
+                infoDiv.innerHTML = '<span style="color: green;">사용 가능</span>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function checkStaffSchedule(type, staffId) {
+    let infoId;
+    
+    if (type === 'pilot') {
+        if (!staffId) {
+            document.getElementById('pilot-schedule-info').innerHTML = '';
+            return;
+        }
+        infoId = 'pilot-schedule-info';
+    } else if (type === 'copilot') {
+        if (!staffId) {
+            document.getElementById('copilot-schedule-info').innerHTML = '';
+            return;
+        }
+        infoId = 'copilot-schedule-info';
+    } else if (type === 'cabin_crew_1') {
+        if (!staffId) {
+            document.getElementById('cabin_crew_1-schedule-info').innerHTML = '';
+            return;
+        }
+        infoId = 'cabin_crew_1-schedule-info';
+    } else if (type === 'cabin_crew_2') {
+        if (!staffId) {
+            document.getElementById('cabin_crew_2-schedule-info').innerHTML = '';
+            return;
+        }
+        infoId = 'cabin_crew_2-schedule-info';
+    } else {
+        return;
+    }
+    
+    if (!staffId) {
+        return;
+    }
+    
+    fetch(`/staff/api/staff-schedule/${staffId}`)
+        .then(response => response.json())
+        .then(data => {
+            const infoDiv = document.getElementById(infoId);
+            if (data.schedule && data.schedule.length > 0) {
+                infoDiv.innerHTML = `<strong>기존 스케줄:</strong> ${data.schedule.length}건`;
+            } else {
+                infoDiv.innerHTML = '<span style="color: green;">사용 가능</span>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function openEditModal(flightId, flightNo, depTime, arrTime, depGate, arrGate) {
+    document.getElementById('edit_flight_id').value = flightId;
+    document.getElementById('edit_departure_time').value = depTime;
+    document.getElementById('edit_arrival_time').value = arrTime;
+    document.getElementById('edit_departure_gate').value = depGate;
+    document.getElementById('edit_arrival_gate').value = arrGate;
+    document.getElementById('edit-flight-form').action = `/staff/scheduler/edit-flight/${flightId}`;
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+function openCancelModal(flightId, flightNo) {
+    document.getElementById('cancel_flight_id').value = flightId;
+    document.getElementById('cancel-flight-form').action = `/staff/scheduler/cancel-flight/${flightId}`;
+    document.getElementById('cancelModal').style.display = 'block';
+}
+
+function closeCancelModal() {
+    document.getElementById('cancelModal').style.display = 'none';
+}
+
+// 모달 외부 클릭 시 닫기
+window.onclick = function(event) {
+    const editModal = document.getElementById('editModal');
+    const cancelModal = document.getElementById('cancelModal');
+    if (event.target == editModal) {
+        closeEditModal();
+    }
+    if (event.target == cancelModal) {
+        closeCancelModal();
+    }
+}
+</script>
+{% endblock %}
+
