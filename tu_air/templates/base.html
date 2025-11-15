@@ -41,8 +41,9 @@
                     
                     {% if session.get('user_type') == 'member' %}
                         <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
-                    {% else %}
-                        <a href="#">직원 관리</a> {% endif %}
+                    {% elif session.get('user_type') == 'staff' %}
+                        <a href="{{ url_for('staff.dashboard') }}">직원 대시보드</a>
+                    {% endif %}
                     
                     <a href="{{ url_for('auth.logout') }}">로그아웃</a>
                 {% else %}

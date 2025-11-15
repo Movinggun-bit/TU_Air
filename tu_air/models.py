@@ -41,7 +41,7 @@ class Staff(db.Model):
     Staff_ID = db.Column(db.String(15), primary_key=True)
     Passwd = db.Column(db.String(20), nullable=False) 
     Name = db.Column(db.String(25), nullable=False)
-    Role = db.Column(db.Enum('Pilot', 'Co-Pilot', 'Cabin Crew', 'Engineer', 'HR', 'Scheduler', 'CEO'), nullable=False)
+    Role = db.Column(db.Enum('Pilot', 'Co-Pilot', 'Cabin Crew', 'Engineer', 'Ground Staff', 'HR', 'Scheduler', 'CEO', 'marketer'), nullable=False)
     Department = db.Column(db.String(50), nullable=True)
     def __repr__(self):
         return f"<Staff {self.Staff_ID} ({self.Name})>"

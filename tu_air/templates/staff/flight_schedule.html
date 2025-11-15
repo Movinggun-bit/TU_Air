@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}비행 스케줄 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">비행 스케줄</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <div class="schedule-table-container">
+            <table class="staff-table">
+                <thead>
+                    <tr>
+                        <th>비행편 번호</th>
+                        <th>항공기 ID</th>
+                        <th>출발 공항</th>
+                        <th>출발 시간</th>
+                        <th>출발 게이트</th>
+                        <th>도착 공항</th>
+                        <th>도착 시간</th>
+                        <th>도착 게이트</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if flights %}
+                        {% for flight in flights %}
+                        <tr>
+                            <td>{{ flight.Flight_No }}</td>
+                            <td>{{ flight.Aircraft_ID }}</td>
+                            <td>{{ flight.departure_airport.City }} ({{ flight.Departure_Airport_Code }})</td>
+                            <td>{{ flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ flight.Departure_Gate }}</td>
+                            <td>{{ flight.arrival_airport.City }} ({{ flight.Arrival_Airport_Code }})</td>
+                            <td>{{ flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ flight.Arrival_Gate }}</td>
+                            <td>
+                                <span class="status-badge status-{{ flight.Flight_Status.lower().replace('_', '-') }}">
+                                    {% if flight.Flight_Status == 'On_Time' %}정시
+                                    {% elif flight.Flight_Status == 'Delayed' %}지연
+                                    {% elif flight.Flight_Status == 'Canceled' %}취소
+                                    {% else %}{{ flight.Flight_Status }}{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="no-data">조회된 비행 스케줄이 없습니다.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

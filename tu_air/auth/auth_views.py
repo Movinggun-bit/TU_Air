@@ -61,8 +61,22 @@ def login():
             if error is None:
                 session.clear()
                 session['user_id'] = staff_user.Staff_ID
-                session['user_type'] = 'staff' 
-                return redirect(url_for('main.home'))
+                session['user_type'] = 'staff'
+                session['staff_role'] = staff_user.Role  # 직업 정보 저장
+                # 직업별 대시보드로 리다이렉트
+                role_map = {
+                    'Pilot': 'staff.flight_schedule',
+                    'Co-Pilot': 'staff.flight_schedule',
+                    'Cabin Crew': 'staff.flight_schedule',
+                    'Engineer': 'staff.maintenance',
+                    'Ground Staff': 'staff.maintenance',
+                    'HR': 'staff.hr_management',
+                    'Scheduler': 'staff.employee_schedule',
+                    'CEO': 'staff.ceo_dashboard',
+                    'marketer': 'staff.sales_revenue'
+                }
+                dashboard_url = role_map.get(staff_user.Role, 'staff.flight_schedule')
+                return redirect(url_for(dashboard_url))
         
         flash(error)
         

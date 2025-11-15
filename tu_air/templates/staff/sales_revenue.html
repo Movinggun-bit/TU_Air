@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}총 매출액 - TU Air{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1 class="staff-title">총 매출액</h1>
+        <div class="staff-user-info">
+            <span class="staff-role">{{ role }}</span>
+            <span class="staff-name">{{ staff_name }}님</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="staff-content">
+        <div class="revenue-summary-section">
+            <h2>매출 요약</h2>
+            <div class="revenue-cards">
+                <div class="revenue-card">
+                    <div class="revenue-label">총 매출액</div>
+                    <div class="revenue-value">KRW {{ "{:,.0f}".format(total_revenue) }}</div>
+                </div>
+                <div class="revenue-card">
+                    <div class="revenue-label">총 환불액</div>
+                    <div class="revenue-value refund">KRW {{ "{:,.0f}".format(total_refund) }}</div>
+                </div>
+                <div class="revenue-card highlight">
+                    <div class="revenue-label">순매출액</div>
+                    <div class="revenue-value">KRW {{ "{:,.0f}".format(net_revenue) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="revenue-monthly-section">
+            <h2>월별 매출액 (최근 12개월)</h2>
+            <div class="monthly-table-container">
+                <table class="staff-table">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th>매출액</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if monthly_revenue %}
+                            {% for month_data in monthly_revenue %}
+                            <tr>
+                                <td>{{ month_data.month }}</td>
+                                <td class="revenue-amount">KRW {{ "{:,.0f}".format(month_data.revenue) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="no-data">조회된 매출 데이터가 없습니다.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
