@@ -59,7 +59,7 @@ class Flight(db.Model):
     __tablename__ = 'flight'
     Flight_ID = db.Column(db.String(15), primary_key=True)
     Flight_No = db.Column(db.String(10), nullable=False)
-    Aircraft_ID = db.Column(db.String(10), nullable=False) # (Aircraft 모델은 생략)
+    Aircraft_ID = db.Column(db.String(10), db.ForeignKey('aircraft.Aircraft_ID'), nullable=False)
     Departure_Airport_Code = db.Column(db.String(5), db.ForeignKey('airport.Airport_Code'), nullable=False)
     Departure_Time = db.Column(db.DATETIME, nullable=False)
     Departure_Gate = db.Column(db.String(10), nullable=False)
@@ -73,6 +73,8 @@ class Flight(db.Model):
     departure_airport = db.relationship('Airport', foreign_keys=[Departure_Airport_Code])
     arrival_airport = db.relationship('Airport', foreign_keys=[Arrival_Airport_Code])
     seat_availabilities = db.relationship('Flight_Seat_Availability', back_populates='flight')
+    aircraft = db.relationship('Aircraft', back_populates='flights')
+    prices = db.relationship('Flight_Price', back_populates='flight', cascade="all, delete-orphan")
 
 # --- [신규] Booking 모델 (Member, Flight와 관계 설정) ---
 class Booking(db.Model):
@@ -163,6 +165,8 @@ class Aircraft(db.Model):
     
     # (관계: 1대의 항공기는 N개의 좌석을 가짐)
     seats = db.relationship('Seat', back_populates='aircraft')
+    # [!!!] (신규) 2. Aircraft(1)가 Flight(N)를 가짐 [!!!]
+    flights = db.relationship('Flight', back_populates='aircraft')
 
 # --- [신규] Seat 모델 (Aircraft와 관계 설정) ---
 class Seat(db.Model):
@@ -188,3 +192,12 @@ class Flight_Seat_Availability(db.Model):
     # (관계: N:1)
     flight = db.relationship('Flight', back_populates='seat_availabilities')
     seat = db.relationship('Seat', back_populates='flight_availabilities')
+
+class Flight_Price(db.Model):
+    __tablename__ = 'flight_price'
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), primary_key=True)
+    Class = db.Column(db.Enum('Economy', 'Business', 'First'), primary_key=True)
+    Price = db.Column(db.DECIMAL(10, 2), nullable=False)
+
+    # (관계: Flight_Price(N)가 Flight(1)에 속함)
+    flight = db.relationship('Flight', back_populates='prices')

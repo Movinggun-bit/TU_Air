@@ -1,0 +1,688 @@
+/* TU_Air/static/css/modules/15_page_admin.css */
+/* 관리자 페이지 전용 스타일 */
+
+/* [!!!] 항공편 편성(admin_schedule) 폼 2열 래퍼 [!!!] */
+.admin-form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.admin-form-row .form-group-register {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* 항공기 선택 버튼 (라벨 옆 작은 버튼) */
+.label-with-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.btn-select-aircraft-small {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #004a99;
+    background: #f0f7ff;
+    border: 1px solid #004a99;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-select-aircraft-small:hover {
+    background: #004a99;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 74, 153, 0.2);
+}
+
+.btn-select-aircraft-small:active {
+    transform: translateY(0);
+}
+
+/* 항공기 선택 화면 스타일 */
+.aircraft-selection-container {
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 30px 60px;
+}
+
+.aircraft-selection-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.aircraft-selection-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.aircraft-selection-subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+}
+
+.aircraft-category {
+    margin-bottom: 50px;
+}
+
+.category-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+}
+
+.category-icon {
+    font-size: 28px;
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #004a99;
+    background: #f0f7ff;
+    border-radius: 12px;
+    margin-left: auto;
+}
+
+.category-description {
+    font-size: 14px;
+    color: #888;
+    margin: 0;
+}
+
+.aircraft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.aircraft-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.aircraft-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #004a99;
+}
+
+.aircraft-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.aircraft-model {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    flex: 1;
+}
+
+.aircraft-id {
+    font-size: 12px;
+    color: #888;
+    font-family: 'Courier New', monospace;
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.aircraft-card-body {
+    margin-bottom: 20px;
+}
+
+.aircraft-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f8f8f8;
+}
+
+.aircraft-info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 15px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.info-value.highlight {
+    color: #004a99;
+    font-size: 16px;
+}
+
+.aircraft-card-footer {
+    display: flex;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.btn-aircraft-select {
+    flex: 1;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #004a99;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-aircraft-select:hover {
+    background: #003d7a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 74, 153, 0.3);
+}
+
+.btn-aircraft-select:active {
+    transform: translateY(0);
+}
+
+.btn-aircraft-details {
+    flex: 1;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #004a99;
+    background: #fff;
+    border: 1px solid #004a99;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.btn-aircraft-details:hover {
+    background: #f0f7ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 74, 153, 0.2);
+}
+
+.btn-aircraft-details:active {
+    transform: translateY(0);
+}
+
+.aircraft-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+    font-size: 16px;
+}
+
+/* 항공기 일정 화면 스타일 */
+.aircraft-schedule-container {
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 30px 60px;
+}
+
+.aircraft-schedule-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.aircraft-schedule-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 10px 0;
+}
+
+.aircraft-schedule-header .aircraft-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.aircraft-schedule-header .aircraft-info-item {
+    font-size: 15px;
+    color: #666;
+}
+
+.aircraft-schedule-header .aircraft-info-item strong {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+/* 월별 선택 탭 */
+.month-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.month-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.month-tab:hover {
+    border-color: #004a99;
+    color: #004a99;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 74, 153, 0.2);
+}
+
+.month-tab.active {
+    background: #004a99;
+    color: #fff;
+    border-color: #004a99;
+    font-weight: 600;
+}
+
+.month-tab.active:hover {
+    background: #003d7a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 74, 153, 0.3);
+}
+
+/* 날짜별 일정 표시 */
+.schedule-month-content {
+    display: none;
+}
+
+.schedule-month-content.active {
+    display: block;
+}
+
+.schedule-day-group {
+    margin-bottom: 30px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.schedule-day-header {
+    background: linear-gradient(135deg, #004a99 0%, #003d7a 100%);
+    color: #fff;
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.schedule-day-date {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.schedule-day-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.schedule-day-body {
+    padding: 20px 24px;
+}
+
+.flight-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.flight-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #004a99;
+    transition: all 0.2s ease;
+}
+
+.flight-item:hover {
+    background: #f0f7ff;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 74, 153, 0.1);
+}
+
+.flight-info {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.flight-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.flight-info-label {
+    font-size: 12px;
+    color: #888;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flight-info-value {
+    font-size: 15px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.flight-info-value.flight-no {
+    color: #004a99;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.flight-info-value.time {
+    font-family: 'Courier New', monospace;
+    color: #333;
+}
+
+.flight-status {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.flight-status.on-time {
+    background: #e6f7ff;
+    color: #004a99;
+}
+
+.flight-status.delayed {
+    background: #fff7e6;
+    color: #d46b08;
+}
+
+.flight-status.canceled {
+    background: #fff1f0;
+    color: #cf1322;
+}
+
+.schedule-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+    font-size: 16px;
+}
+
+.schedule-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #004a99;
+    background: #fff;
+    border: 1px solid #004a99;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    margin-top: 30px;
+}
+
+.btn-back:hover {
+    background: #f0f7ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 74, 153, 0.2);
+}
+
+/* 항공편 편성 화면 - 시간 입력 및 가격 필드 스타일 */
+.datetime-picker-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: visible !important; /* 달력이 잘리지 않도록 */
+    z-index: 1;
+}
+
+.datetime-display {
+    cursor: pointer;
+    background-color: #fff;
+    width: 100%;
+}
+
+.datetime-display:disabled {
+    background-color: #f4f7f6;
+    cursor: not-allowed;
+}
+
+/* Flatpickr 달력 스타일 개선 */
+.datetime-picker-wrapper .flatpickr-calendar {
+    font-family: inherit !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #e0e0e0 !important;
+    z-index: 9999 !important; /* 최상위로 표시 */
+    position: absolute !important;
+    width: 320px !important; /* 명시적 너비 설정 */
+    max-width: calc(100vw - 40px) !important; /* 화면 너비를 넘지 않도록 */
+    margin-top: 5px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-calendar.arrowTop:before {
+    border-bottom-color: #e0e0e0 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-calendar.arrowTop:after {
+    border-bottom-color: #fff !important;
+}
+
+.datetime-picker-wrapper .flatpickr-months {
+    background: linear-gradient(135deg, #004a99 0%, #003d7a 100%) !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 10px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-month {
+    color: #fff !important;
+}
+
+.datetime-picker-wrapper .flatpickr-current-month {
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-prev-month,
+.datetime-picker-wrapper .flatpickr-next-month {
+    color: #fff !important;
+    fill: #fff !important;
+}
+
+.datetime-picker-wrapper .flatpickr-prev-month:hover,
+.datetime-picker-wrapper .flatpickr-next-month:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-weekdays {
+    background: #f8f9fa !important;
+    padding: 8px 0 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-weekday {
+    color: #666 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-day {
+    border-radius: 4px !important;
+    margin: 2px !important;
+    transition: all 0.2s ease !important;
+}
+
+.datetime-picker-wrapper .flatpickr-day:hover {
+    background: #f0f7ff !important;
+    border-color: #004a99 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-day.selected {
+    background: #004a99 !important;
+    border-color: #004a99 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-day.today {
+    border-color: #004a99 !important;
+    color: #004a99 !important;
+    font-weight: 600 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-day.today.selected {
+    background: #004a99 !important;
+    color: #fff !important;
+}
+
+.datetime-picker-wrapper .flatpickr-time {
+    border-top: 1px solid #e0e0e0 !important;
+    padding: 10px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-time input {
+    border-radius: 4px !important;
+    border: 1px solid #ddd !important;
+    padding: 5px !important;
+    font-size: 14px !important;
+}
+
+.datetime-picker-wrapper .flatpickr-time input:hover {
+    border-color: #004a99 !important;
+}
+
+.datetime-picker-wrapper .flatpickr-time input:focus {
+    border-color: #004a99 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(0, 74, 153, 0.2) !important;
+}
+
+.price-required {
+    color: #D90429;
+    font-weight: 600;
+}
+
+.form-input-register:disabled {
+    background-color: #f4f7f6;
+    color: #777;
+    cursor: not-allowed;
+}
+
+.form-input-register:disabled::placeholder {
+    color: #aaa;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .aircraft-selection-container,
+    .aircraft-schedule-container {
+        padding: 0 20px 40px;
+    }
+
+    .aircraft-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .aircraft-selection-header h1,
+    .aircraft-schedule-header h1 {
+        font-size: 24px;
+    }
+
+    .category-title {
+        font-size: 20px;
+    }
+
+    .month-selector {
+        padding: 15px;
+    }
+
+    .month-tab {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    .flight-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .flight-info {
+        width: 100%;
+        grid-template-columns: 1fr;
+    }
+}
+

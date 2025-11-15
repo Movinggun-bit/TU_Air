@@ -3,13 +3,20 @@
 
 from . import main_bp
 from ..extensions import db
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, g, session, redirect, url_for
 from sqlalchemy import text
 import datetime
 
 @main_bp.route('/')
 def home():
     """홈페이지 (index.html)를 렌더링합니다."""
+    # 직원은 메인 화면 접근 불가
+    if g.user and session.get('user_type') == 'staff':
+        # 역할별 홈으로 리다이렉트
+        if g.user.Role == 'Scheduler':
+            return redirect(url_for('admin.schedule_dashboard'))
+        else:
+            return redirect(url_for('admin.index'))
     return render_template('index.html')
 
 @main_bp.route('/booking')
@@ -19,6 +26,13 @@ def booking():
     (이 페이지는 검색 폼만 있고, 공항 목록이 필요 없습니다. 
      공항 목록은 index/booking.html의 JS가 /get_airports로 불러옵니다.)
     """
+    # 직원은 예매 화면 접근 불가
+    if g.user and session.get('user_type') == 'staff':
+        # 역할별 홈으로 리다이렉트
+        if g.user.Role == 'Scheduler':
+            return redirect(url_for('admin.schedule_dashboard'))
+        else:
+            return redirect(url_for('admin.index'))
     # (참고: main.js가 /get_airports를 AJAX로 호출하므로,
     #  여기서 airports를 전달할 필요가 없습니다.)
     return render_template('booking.html')

@@ -6,34 +6,32 @@
     <h1 class="login-title">로그인</h1>
 
     <div class="login-tabs">
-        <div class="login-tab active">
+        <div class="login-tab active" data-type="id">
             <svg fill="currentColor" viewBox="0 0 16 16" height="1em" width="1em">
               <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
             </svg>
             로그인
         </div>
-        <div class="login-tab inactive">
-            비회원 예약조회
+        <div class="login-tab inactive" data-type="staff">
+            직원 로그인
         </div>
     </div>
     
-        {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="flash-error">{{ messages[0] }}</div>
       {% endif %}
     {% endwith %}
 
     <form class="login-form" method="POST" action="{{ url_for('auth.login') }}">
-        <div class="radio-group">
-            <label><input type="radio" name="login_type" value="id" checked> 아이디 로그인</label>
-            <label><input type="radio" name="login_type" value="staff"> 직원 로그인</label>
-        </div>
-        
-        <input type="text" name="member_id" placeholder="아이디 입력" class="form-input-login" required>
-        <input type="password" name="password" placeholder="비밀번호 입력" class="form-input-login" required>
-        
-        <button type="submit" class="btn-login-submit">로그인</button>
-    </form>
+        
+        <input type="hidden" id="login_type" name="login_type" value="id">
+        
+        <input type="text" id="member_id_input" name="member_id" placeholder="아이디 입력" class="form-input-login" required>
+        <input type="password" id="password_input" name="password" placeholder="비밀번호 입력" class="form-input-login" required>
+        
+        <button type="submit" class="btn-login-submit">로그인</button>
+    </form>
     
     <div class="login-bottom-links">
         <div class="find-links">
@@ -44,4 +42,41 @@
         <a href="{{ url_for('auth.register') }}" class="btn-login-register">회원가입</a>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.login-tab');
+    const loginTypeInput = document.getElementById('login_type');
+    
+    // (1. 폼 입력 필드 찾기)
+    const memberIdInput = document.getElementById('member_id_input');
+    const passwordInput = document.getElementById('password_input');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                t.classList.add('inactive');
+            });
+
+            this.classList.add('active');
+            this.classList.remove('inactive');
+
+            const type = this.dataset.type; // 'id' 또는 'staff'
+            loginTypeInput.value = type;
+            
+            // [!!!] (신규) 2. 탭 타입에 따라 placeholder 변경 [!!!]
+            if (type === 'staff') {
+                memberIdInput.placeholder = '직원 아이디 입력';
+                passwordInput.placeholder = '직원 비밀번호 입력';
+            } else {
+                memberIdInput.placeholder = '아이디 입력';
+                passwordInput.placeholder = '비밀번호 입력';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -15,34 +15,52 @@
     <header class="main-header">
         <div class="header-content">
             
-            <a href="{{ url_for('main.home') }}" class="header-logo-link">
-                <img src="{{ url_for('main.static', filename='images/logo.jpg') }}" alt="TU Air Logo" class="header-logo">
-                <span class="header-title">TU Air</span>
-            </a>
+            {% if session.user_type == 'staff' %}
+                <a href="{{ url_for('admin.index') }}" class="header-logo-link">
+                    <img src="{{ url_for('main.static', filename='images/logo.jpg') }}" alt="TU Air Logo" class="header-logo">
+                    <span class="header-title">TU Air (Admin)</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.home') }}" class="header-logo-link">
+                    <img src="{{ url_for('main.static', filename='images/logo.jpg') }}" alt="TU Air Logo" class="header-logo">
+                    <span class="header-title">TU Air</span>
+                </a>
+            {% endif %}
             
-            <nav class="main-nav">
-                <a href="{{ url_for('main.booking') }}" 
-                   class="{{ 'active' if request.endpoint == 'main.booking' else '' }}">
-                   항공권 예매
-                </a>
-                <a href="{{ url_for('reservation.index') }}"
-                   class="{{ 'active' if request.endpoint.startswith('reservation.') else '' }}">
-                   예약 조회
-                </a>
-                <a href="{{ url_for('checkin.index') }}"
-                   class="{{ 'active' if request.endpoint.startswith('checkin.') else '' }}">
-                   체크인
-                </a>
-            </nav>
+            
+            {% if session.user_type == 'staff' %}
+                <nav class="main-nav">
+                    {% if g.user.Role == 'Scheduler' %}
+                        <a href="{{ url_for('admin.schedule_dashboard') }}" class="active">항공편 편성</a>
+                    {% endif %}
+                </nav>
+            {% else %}
+                <nav class="main-nav">
+                    <a href="{{ url_for('main.booking') }}" 
+                       class="{{ 'active' if request.endpoint == 'main.booking' else '' }}">
+                       항공권 예매
+                    </a>
+                    <a href="{{ url_for('reservation.index') }}"
+                       class="{{ 'active' if request.endpoint.startswith('reservation.') else '' }}">
+                       예약 조회
+                    </a>
+                    <a href="{{ url_for('checkin.index') }}"
+                       class="{{ 'active' if request.endpoint.startswith('checkin.') else '' }}">
+                       체크인
+                    </a>
+                </nav>
+            {% endif %}
+            
             
             <div class="user-nav">
                 {% if g.user %}
                     <span class="nav-user-name">{{ g.user.Name }}님</span>
                     
-                    {% if session.get('user_type') == 'member' %}
+                    {% if session.user_type == 'member' %}
                         <a href="{{ url_for('mypage.mypage') }}">마이페이지</a>
-                    {% else %}
-                        <a href="#">직원 관리</a> {% endif %}
+                    {% elif session.user_type == 'staff' %}
+                        <a href="{{ url_for('admin.index') }}">관리자 홈</a>
+                    {% endif %}
                     
                     <a href="{{ url_for('auth.logout') }}">로그아웃</a>
                 {% else %}

@@ -25,7 +25,13 @@ def load_logged_in_user():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if g.user:
-        return redirect(url_for('main.home'))
+        if session.get('user_type') == 'staff':
+            # 직원은 역할별 홈으로 리다이렉트
+            if g.user.Role == 'Scheduler':
+                return redirect(url_for('admin.schedule_dashboard'))
+            else:
+                return redirect(url_for('admin.index'))
+        return redirect(url_for('main.home')) # (회원은 고객 홈으로)
     
     if request.method == 'POST':
         login_type = request.form.get('login_type') 
@@ -54,15 +60,16 @@ def login():
                 return redirect(next_url)
         
         elif login_type == 'staff':
-            # --- 2. 직원 로그인 (해시 비교) ---
+            # --- 2. 직원 로그인 ---
             staff_user = Staff.query.filter_by(Staff_ID=member_id).first()
             if staff_user is None or staff_user.Passwd != password:
                 error = '직원 아이디 또는 비밀번호가 올바르지 않습니다.'
             if error is None:
                 session.clear()
                 session['user_id'] = staff_user.Staff_ID
-                session['user_type'] = 'staff' 
-                return redirect(url_for('main.home'))
+                session['user_type'] = 'staff'
+                
+                return redirect(url_for('admin.index'))
         
         flash(error)
         
