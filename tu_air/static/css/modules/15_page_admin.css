@@ -646,68 +646,6 @@
     color: #aaa;
 }
 
-/* Styles for the staff assignment page */
-
-/* Dropdown styling */
-.form-input-register {
-    width: 100%;
-    padding: 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #fff;
-    transition: border-color 0.2s;
-}
-
-.form-input-register:focus {
-    border-color: #004a99;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 74, 153, 0.2);
-}
-
-/* Hint text styling */
-.form-hint {
-    font-size: 12px;
-    color: #888;
-    margin-top: 5px;
-}
-
-/* Button styling */
-.btn-register-submit {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-    background-color: #004a99;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-register-submit:hover {
-    background-color: #003d7a;
-}
-
-/* Flash message styling */
-.flash-message {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.flash-message.success {
-    background-color: #e6f7ff;
-    color: #004a99;
-}
-
-.flash-message.error {
-    background-color: #fff1f0;
-    color: #cf1322;
-}
-
 /* 반응형 디자인 */
 @media (max-width: 768px) {
     .aircraft-selection-container,

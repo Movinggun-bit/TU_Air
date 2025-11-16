@@ -2,9 +2,121 @@
 {% block title %}항공편 편성 - 관리자{% endblock %}
 
 {% block content %}
+<style>
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-left: 5px;
+    }
+    .tooltip-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: #888;
+        color: white;
+        text-align: center;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: bold;
+    }
+    .tooltip-text {
+        visibility: hidden;
+        width: 500px; /* Further increased width */
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
+        position: absolute;
+        z-index: 9999; /* Increased z-index */
+        top: 125%; /* Position below the icon */
+        left: 50%;
+        margin-left: -250px; /* Adjusted for new width */
+        opacity: 0;
+        transition: opacity 0.3s;
+        white-space: pre-wrap;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+    /* Modal Styles */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.6);
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 700px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    }
+    .modal-header {
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5em;
+    }
+    .modal-body {
+        padding: 15px 0;
+    }
+    .modal-footer {
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        text-align: right;
+    }
+    .modal-footer .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .modal-footer .btn-confirm {
+        background-color: #007bff;
+        color: white;
+    }
+    .modal-footer .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        margin-left: 10px;
+    }
+    .confirmation-grid {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 10px;
+    }
+    .confirmation-grid dt {
+        font-weight: bold;
+        text-align: right;
+        color: #555;
+    }
+    .confirmation-grid dd {
+        margin: 0;
+    }
+</style>
 <div class="register-container" style="max-width: 900px;"> 
     <h1 class="register-title">항공편 편성 (Scheduler)</h1>
 
+    {% if error_message %}
+        <div class="flash-message error">{{ error_message }}</div>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -17,13 +129,40 @@
         <input type="hidden" id="trip_type_input" value="one_way">
     </div>
 
-    <form class="register-form" method="POST" action="{{ url_for('admin.schedule_dashboard') }}">
+    <form class="register-form" id="schedule_form" method="POST" action="{{ url_for('admin.schedule_dashboard') }}">
+        <input type="hidden" name="create_flight" value="true">
         
+        <h2 class="section-title">항공편 정보</h2>
         <div class="admin-form-row">
             <div class="form-group-register">
-                <label for="flight_no">항공편명 *</label>
+                <label for="flight_no">항공편명 *
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon">?</span>
+                        <span class="tooltip-text">
+                            1. 항공편명 (Flight_No) 생성 규칙<br>
+                            TU + [4자리 숫자] 조합을 사용하며, 각 숫자는 다음 의미를 가집니다.<br><br>
+                            형식: TU [X][Y][Y][Z]<br>
+                            [X] (천의 자리): 권역 구분<br>
+                            1: 국내선 (GMP, CJU, PUS...)<br>
+                            2: 일본/중국 (NRT, KIX, PEK...)<br>
+                            3: 동남아 (DAD, SGN, BKK...)<br>
+                            5: 미주 (LAX, JFK...)<br>
+                            8: 유럽/기타 장거리 (CDG, LHR...)<br><br>
+                            [YY] (백의 자리, 십의 자리): 노선 고유번호<br>
+                            예: 01 = 김포-제주 노선, 05 = 인천-LA 노선<br><br>
+                            [Z] (일의 자리): 방향 구분<br>
+                            짝수 (0, 2, 4...): 한국(ICN/GMP)에서 출발하는 Outbound 편<br>
+                            홀수 (1, 3, 5...): 한국(ICN/GMP)으로 도착하는 Inbound 편<br><br>
+                            적용 예시:<br>
+                            TU1010: 국내선(1), 김포-제주(01) 노선, 한국 출발(0)<br>
+                            TU1011: 국내선(1), 김포-제주(01) 노선, 한국 도착(1)<br>
+                            TU5050: 미주(5), 인천-LA(05) 노선, 한국 출발(0)<br>
+                            TU5051: 미주(5), 인천-LA(05) 노선, 한국 도착(1)
+                        </span>
+                    </span>
+                </label>
                 <input type="text" id="flight_no" name="flight_no" class="form-input-register" 
-                       placeholder="예: TU1010" required>
+                       placeholder="예: TU1010" value="{{ form_data.get('flight_no', '') }}" required>
             </div>
             <div class="form-group-register">
                 <label for="aircraft_id" class="label-with-button">
@@ -33,7 +172,7 @@
                     </button>
                 </label>
                 <input type="text" id="aircraft_id" name="aircraft_id" class="form-input-register" 
-                       placeholder="항공기를 선택하세요" value="{{ selected_aircraft_id or '' }}" readonly
+                       placeholder="항공기를 선택하세요" value="{{ form_data.get('aircraft_id') or selected_aircraft_id or '' }}" readonly
                        data-capacity="{{ selected_aircraft_capacity or '' }}">
             </div>
         </div>
@@ -41,7 +180,7 @@
         <div class="admin-form-row">
             <div class="form-group-register">
                 <label>출발지 *</label>
-                <input type="hidden" name="departure_airport" id="departure_airport" required>
+                <input type="hidden" name="departure_airport" id="departure_airport" value="{{ form_data.get('departure_airport', '') }}" required>
                 <button type="button" class="form-input-btn form-input-register" id="select_departure_airport">
                     <span class="placeholder">출발 공항 선택</span>
                     <strong class="main-text"></strong>
@@ -50,7 +189,7 @@
             </div>
             <div class="form-group-register">
                 <label>도착지 *</label>
-                <input type="hidden" name="arrival_airport" id="arrival_airport" required>
+                <input type="hidden" name="arrival_airport" id="arrival_airport" value="{{ form_data.get('arrival_airport', '') }}" required>
                 <button type="button" class="form-input-btn form-input-register" id="select_arrival_airport">
                     <span class="placeholder">도착 공항 선택</span>
                     <strong class="main-text"></strong>
@@ -64,16 +203,16 @@
                 <label for="dep_time">출발 시간 (Local) *</label>
                 <div class="datetime-picker-wrapper" id="dep_time_wrapper">
                     <input type="text" id="dep_time_display" class="form-input-register datetime-display" 
-                           placeholder="날짜와 시간을 선택하세요" data-input>
-                    <input type="hidden" id="dep_time" name="dep_time" required>
+                           placeholder="날짜와 시간을 선택하세요" value="{{ form_data.get('dep_time_display', '') }}" data-input>
+                    <input type="hidden" id="dep_time" name="dep_time" value="{{ form_data.get('dep_time', '') }}" required>
                 </div>
             </div>
             <div class="form-group-register">
                 <label for="arr_time">도착 시간 (Local) *</label>
                 <div class="datetime-picker-wrapper" id="arr_time_wrapper">
                     <input type="text" id="arr_time_display" class="form-input-register datetime-display" 
-                           placeholder="날짜와 시간을 선택하세요" data-input>
-                    <input type="hidden" id="arr_time" name="arr_time" required>
+                           placeholder="날짜와 시간을 선택하세요" value="{{ form_data.get('arr_time_display', '') }}" data-input>
+                    <input type="hidden" id="arr_time" name="arr_time" value="{{ form_data.get('arr_time', '') }}" required>
                 </div>
             </div>
         </div>
@@ -82,37 +221,88 @@
             <div class="form-group-register">
                 <label for="dep_gate">출발 게이트 *</label>
                 <input type="text" id="dep_gate" name="dep_gate" class="form-input-register" 
-                       placeholder="예: 10A" required>
+                       placeholder="예: 10A" value="{{ form_data.get('dep_gate', '') }}" required>
             </div>
             <div class="form-group-register">
                 <label for="arr_gate">도착 게이트 *</label>
                 <input type="text" id="arr_gate" name="arr_gate" class="form-input-register" 
-                       placeholder="예: B5" required>
+                       placeholder="예: B5" value="{{ form_data.get('arr_gate', '') }}" required>
             </div>
         </div>
         
         <hr class="register-divider">
         
+        <h2 class="section-title">가격 정보</h2>
         <div class="admin-form-row">
             <div class="form-group-register">
                 <label for="price_econ">이코노미 가격 (KRW) *</label>
                 <input type="number" id="price_econ" name="price_econ" class="form-input-register" 
-                       min="0" step="1000" placeholder="예: 1500000" required>
+                       min="0" step="1000" placeholder="예: 1500000" value="{{ form_data.get('price_econ', '') }}" required>
             </div>
             <div class="form-group-register">
                 <label for="price_biz">비즈니스 가격 (KRW) <span class="price-required">*</span></label>
                 <input type="number" id="price_biz" name="price_biz" class="form-input-register" 
-                       min="0" step="1000" placeholder="예: 3000000" disabled>
+                       min="0" step="1000" placeholder="예: 3000000" value="{{ form_data.get('price_biz', '') }}" disabled>
             </div>
             <div class="form-group-register">
                 <label for="price_first">퍼스트 가격 (KRW) <span class="price-required">*</span></label>
                 <input type="number" id="price_first" name="price_first" class="form-input-register" 
-                       min="0" step="1000" placeholder="예: 5000000" disabled>
+                       min="0" step="1000" placeholder="예: 5000000" value="{{ form_data.get('price_first', '') }}" disabled>
+            </div>
+        </div>
+
+        <hr class="register-divider">
+
+        <h2 class="section-title">직원 배정</h2>
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label class="label-with-button">
+                    기장 *
+                    <button type="button" class="btn-select-aircraft-small" onclick="redirectToStaffSelection('pilot', 'captain')">기장 선택</button>
+                </label>
+                <input type="text" class="form-input-register" name="captain" id="captain" required readonly placeholder="기장을 선택하세요" value="{{ form_data.get('captain', '') }}">
+            </div>
+            <div class="form-group-register">
+                <label class="label-with-button">
+                    부기장 *
+                    <button type="button" class="btn-select-aircraft-small" onclick="redirectToStaffSelection('co_pilot', 'co_pilot')">부기장 선택</button>
+                </label>
+                <input type="text" class="form-input-register" name="co_pilot" id="co_pilot" required readonly placeholder="부기장을 선택하세요" value="{{ form_data.get('co_pilot', '') }}">
+            </div>
+        </div>
+
+        <div class="admin-form-row">
+            <div class="form-group-register">
+                <label class="label-with-button">
+                    승무원 *
+                    <button type="button" class="btn-select-aircraft-small" onclick="redirectToStaffSelection('cabin_crew', 'crew1,crew2')">승무원 선택</button>
+                </label>
+                <input type="text" class="form-input-register" name="crew1" id="crew1" required readonly placeholder="승무원 1을 선택하세요" value="{{ form_data.get('crew1', '') }}">
+            </div>
+            <div class="form-group-register">
+                <label>&nbsp;</label> <!-- 두 번째 승무원 필드 위의 공간을 맞추기 위한 빈 라벨 -->
+                <input type="text" class="form-input-register" name="crew2" id="crew2" required readonly placeholder="승무원 2를 선택하세요" value="{{ form_data.get('crew2', '') }}">
             </div>
         </div>
         
-        <button type="button" class="btn-register-submit" id="assign_staff_button">직원 배정</button>
+        <button type="submit" class="btn-register-submit">항공편 생성 및 직원 배정</button>
     </form>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmation_modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>입력 정보 확인</h2>
+        </div>
+        <div class="modal-body" id="modal_content_area">
+            <!-- Confirmation details will be injected here by JS -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="modal_confirm_btn" class="btn btn-confirm">확인</button>
+            <button type="button" id="modal_cancel_btn" class="btn btn-cancel">취소</button>
+        </div>
+    </div>
 </div>
 
 {% include '_airport_modal.html' %}
@@ -123,75 +313,62 @@
 <script src="{{ url_for('main.static', filename='js/main.js') }}?v=4"></script>
 
 <script>
-    // [!!!] (R2) (신규) 'main.js'의 오류 방지용 더미(dummy) 요소 생성 [!!!]
-    // main.js는 Flatpickr(#flight_datepicker_input)를 찾으려 하므로,
-    // 이 페이지에 해당 ID가 없으면 오류가 날 수 있습니다.
-    // (V10에서 사용한 ID 강제 변경 대신, 더미 div를 사용)
+    // --- 기존 스크립트 ---
     if (!document.getElementById('datepicker_wrapper')) {
         const dummyWrapper = document.createElement('div');
         dummyWrapper.id = 'datepicker_wrapper';
         dummyWrapper.style.display = 'none';
-        
         const dummyInput = document.createElement('input');
         dummyInput.id = 'flight_datepicker_input';
         dummyWrapper.appendChild(dummyInput);
-        
         document.body.appendChild(dummyWrapper);
     }
 
     document.getElementById('select_aircraft_button').addEventListener('click', function() {
+        saveFormState();
         window.location.href = "{{ url_for('admin.aircraft_selection') }}";
     });
 
-    // 항공기 크기에 따른 가격 필드 활성화/비활성화
     function updatePriceFields() {
         const aircraftInput = document.getElementById('aircraft_id');
         if (!aircraftInput) return;
-        
         const capacity = parseInt(aircraftInput.getAttribute('data-capacity')) || 0;
-        
         const priceBiz = document.getElementById('price_biz');
         const priceFirst = document.getElementById('price_first');
         const priceBizLabel = document.querySelector('label[for="price_biz"]');
         const priceFirstLabel = document.querySelector('label[for="price_first"]');
-        
         if (!priceBiz || !priceFirst || !priceBizLabel || !priceFirstLabel) return;
-        
         const priceBizRequired = priceBizLabel.querySelector('.price-required');
         const priceFirstRequired = priceFirstLabel.querySelector('.price-required');
-        
-        // 모든 필드 초기화
-        priceBiz.disabled = true;
-        priceBiz.value = '';
-        priceBiz.removeAttribute('required');
-        if (priceBizRequired) priceBizRequired.style.display = 'none';
-        
-        priceFirst.disabled = true;
-        priceFirst.value = '';
-        priceFirst.removeAttribute('required');
-        if (priceFirstRequired) priceFirstRequired.style.display = 'none';
-        
-        // 항공기 크기에 따라 필드 활성화
-        if (capacity > 179) {  // 중형 이상
+
+        // Business Class Logic
+        if (capacity > 179) {
             priceBiz.disabled = false;
             priceBiz.setAttribute('required', 'required');
             if (priceBizRequired) priceBizRequired.style.display = 'inline';
+        } else {
+            priceBiz.disabled = true;
+            priceBiz.value = '';
+            priceBiz.removeAttribute('required');
+            if (priceBizRequired) priceBizRequired.style.display = 'none';
         }
-        
-        if (capacity >= 300) {  // 대형
+
+        // First Class Logic
+        if (capacity >= 300) {
             priceFirst.disabled = false;
             priceFirst.setAttribute('required', 'required');
             if (priceFirstRequired) priceFirstRequired.style.display = 'inline';
+        } else {
+            priceFirst.disabled = true;
+            priceFirst.value = '';
+            priceFirst.removeAttribute('required');
+            if (priceFirstRequired) priceFirstRequired.style.display = 'none';
         }
     }
     
-    // 항공기 입력 필드 변경 감지
     const aircraftInput = document.getElementById('aircraft_id');
     if (aircraftInput) {
-        // 초기 로드 시 실행
         updatePriceFields();
-        
-        // MutationObserver로 data-capacity 변경 감지
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'data-capacity') {
@@ -202,106 +379,204 @@
         observer.observe(aircraftInput, { attributes: true });
     }
     
-    // Flatpickr로 시간 입력 개선 (wrap 옵션 사용)
-    const depTimeWrapper = document.getElementById('dep_time_wrapper');
-    const arrTimeWrapper = document.getElementById('arr_time_wrapper');
-    const depTimeDisplay = document.getElementById('dep_time_display');
-    const arrTimeDisplay = document.getElementById('arr_time_display');
-    const depTimeHidden = document.getElementById('dep_time');
-    const arrTimeHidden = document.getElementById('arr_time');
-    
-    if (depTimeWrapper && depTimeDisplay && depTimeHidden) {
-        const depPicker = flatpickr(depTimeWrapper, {
-            wrap: true,
-            input: depTimeDisplay,
-            enableTime: true,
-            noCalendar: false,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true,
-            locale: "ko",
-            minDate: "today",
-            allowInput: true,
-            clickOpens: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length > 0) {
-                    const date = selectedDates[0];
-                    // 초 단위를 00으로 설정
-                    const formattedDate = date.getFullYear() + '-' + 
-                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(date.getDate()).padStart(2, '0') + 'T' + 
-                        String(date.getHours()).padStart(2, '0') + ':' + 
-                        String(date.getMinutes()).padStart(2, '0') + ':00';
-                    depTimeHidden.value = formattedDate;
+    // Flatpickr 설정
+    const setupPicker = (wrapperId, displayId, hiddenId) => {
+        const wrapper = document.getElementById(wrapperId);
+        const display = document.getElementById(displayId);
+        const hidden = document.getElementById(hiddenId);
+        if (wrapper && display && hidden) {
+            flatpickr(wrapper, {
+                wrap: true, input: display, enableTime: true, noCalendar: false,
+                dateFormat: "Y-m-d H:i", time_24hr: true, locale: "ko", minDate: "today",
+                allowInput: true, clickOpens: true,
+                onChange: (selectedDates) => {
+                    if (selectedDates.length > 0) {
+                        const date = selectedDates[0];
+                        hidden.value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:00`;
+                    }
                 }
-            },
-            onClose: function(selectedDates, dateStr, instance) {
-                // 달력이 닫힐 때도 값 업데이트
-                if (selectedDates.length > 0) {
-                    const date = selectedDates[0];
-                    const formattedDate = date.getFullYear() + '-' + 
-                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(date.getDate()).padStart(2, '0') + 'T' + 
-                        String(date.getHours()).padStart(2, '0') + ':' + 
-                        String(date.getMinutes()).padStart(2, '0') + ':00';
-                    depTimeHidden.value = formattedDate;
-                }
-            }
-        });
-    }
-    
-    if (arrTimeWrapper && arrTimeDisplay && arrTimeHidden) {
-        const arrPicker = flatpickr(arrTimeWrapper, {
-            wrap: true,
-            input: arrTimeDisplay,
-            enableTime: true,
-            noCalendar: false,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true,
-            locale: "ko",
-            minDate: "today",
-            allowInput: true,
-            clickOpens: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length > 0) {
-                    const date = selectedDates[0];
-                    // 초 단위를 00으로 설정
-                    const formattedDate = date.getFullYear() + '-' + 
-                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(date.getDate()).padStart(2, '0') + 'T' + 
-                        String(date.getHours()).padStart(2, '0') + ':' + 
-                        String(date.getMinutes()).padStart(2, '0') + ':00';
-                    arrTimeHidden.value = formattedDate;
-                }
-            },
-            onClose: function(selectedDates, dateStr, instance) {
-                // 달력이 닫힐 때도 값 업데이트
-                if (selectedDates.length > 0) {
-                    const date = selectedDates[0];
-                    const formattedDate = date.getFullYear() + '-' + 
-                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(date.getDate()).padStart(2, '0') + 'T' + 
-                        String(date.getHours()).padStart(2, '0') + ':' + 
-                        String(date.getMinutes()).padStart(2, '0') + ':00';
-                    arrTimeHidden.value = formattedDate;
-                }
-            }
-        });
-    }
-    
-    document.getElementById('assign_staff_button').addEventListener('click', function() {
-        const form = document.querySelector('.register-form');
-        const formData = new FormData(form);
+            });
+        }
+    };
+    setupPicker('dep_time_wrapper', 'dep_time_display', 'dep_time');
+    setupPicker('arr_time_wrapper', 'arr_time_display', 'arr_time');
 
-        // 모든 필드가 입력되었는지 확인
-        for (const [key, value] of formData.entries()) {
-            if (!value) {
-                alert(`필수 입력값이 누락되었습니다: ${key}`);
-                return;
+    // --- 신규/병합된 스크립트 ---
+    const formFields = [
+        'flight_no', 'aircraft_id', 'departure_airport', 'arrival_airport',
+        'dep_time', 'arr_time', 'dep_gate', 'arr_gate',
+        'price_econ', 'price_biz', 'price_first',
+        'captain', 'co_pilot', 'crew1', 'crew2',
+        'dep_time_display', 'arr_time_display'
+    ];
+
+    const fieldLabels = {
+        flight_no: '항공편명', aircraft_id: '항공기 ID', departure_airport: '출발지', arrival_airport: '도착지',
+        dep_time_display: '출발 시간', arr_time_display: '도착 시간', dep_gate: '출발 게이트', arr_gate: '도착 게이트',
+        price_econ: '이코노미 가격', price_biz: '비즈니스 가격', price_first: '퍼스트 가격',
+        captain: '기장', co_pilot: '부기장', crew1: '승무원 1', crew2: '승무원 2'
+    };
+
+    function saveFormState() {
+        const formState = {};
+        formFields.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) formState[id] = element.value;
+        });
+        // 공항 버튼의 텍스트도 저장
+        formState['departure_airport_text'] = document.querySelector('#select_departure_airport .main-text').textContent;
+        formState['arrival_airport_text'] = document.querySelector('#select_arrival_airport .main-text').textContent;
+        formState['departure_airport_subtext'] = document.querySelector('#select_departure_airport .sub-text').textContent;
+        formState['arrival_airport_subtext'] = document.querySelector('#select_arrival_airport .sub-text').textContent;
+        // 항공기 수용 인원 정보 저장
+        const aircraftInput = document.getElementById('aircraft_id');
+        if (aircraftInput) {
+            formState['aircraft_capacity'] = aircraftInput.getAttribute('data-capacity');
+        }
+        sessionStorage.setItem('scheduleFormState', JSON.stringify(formState));
+    }
+
+    function restoreFormState() {
+        const savedForm = sessionStorage.getItem('scheduleFormState');
+        if (savedForm) {
+            const formState = JSON.parse(savedForm);
+            const aircraftInput = document.getElementById('aircraft_id');
+
+            // 서버가 이미 항공기 ID를 렌더링한 경우(즉, 항공기 선택에서 방금 돌아온 경우),
+            // sessionStorage의 이전 값으로 덮어쓰지 않도록 해당 상태를 삭제합니다.
+            if (aircraftInput && aircraftInput.value) {
+                delete formState['aircraft_id'];
+                delete formState['aircraft_capacity'];
             }
+
+            formFields.forEach(id => {
+                const element = document.getElementById(id);
+                if (element && formState[id]) {
+                    element.value = formState[id];
+                }
+            });
+
+            // formState에 여전히 수용 인원 정보가 있는 경우에만 복원합니다.
+            // (즉, 직원 선택에서 돌아온 경우)
+            if (aircraftInput && formState['aircraft_capacity']) {
+                aircraftInput.setAttribute('data-capacity', formState['aircraft_capacity']);
+            }
+            
+            // 공항 버튼 텍스트 복원
+            const depBtnMain = document.querySelector('#select_departure_airport .main-text');
+            const arrBtnMain = document.querySelector('#select_arrival_airport .main-text');
+            const depBtnSub = document.querySelector('#select_departure_airport .sub-text');
+            const arrBtnSub = document.querySelector('#select_arrival_airport .sub-text');
+            if (formState['departure_airport_text']) {
+                depBtnMain.textContent = formState['departure_airport_text'];
+                depBtnSub.textContent = formState['departure_airport_subtext'];
+                document.querySelector('#select_departure_airport .placeholder').style.display = 'none';
+            }
+            if (formState['arrival_airport_text']) {
+                arrBtnMain.textContent = formState['arrival_airport_text'];
+                arrBtnSub.textContent = formState['arrival_airport_subtext'];
+                document.querySelector('#select_arrival_airport .placeholder').style.display = 'none';
+            }
+            sessionStorage.removeItem('scheduleFormState');
+        }
+    }
+
+    function redirectToStaffSelection(role, target) {
+        saveFormState();
+        let url;
+        if (role === 'pilot') url = "{{ url_for('admin.pilot_selection') }}";
+        else if (role === 'co_pilot') url = "{{ url_for('admin.co_pilot_selection') }}";
+        else if (role === 'cabin_crew') url = "{{ url_for('admin.cabin_crew_selection') }}";
+        
+        if (url) {
+            window.location.href = url + '?target=' + target;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        restoreFormState();
+        updatePriceFields();
+
+        const selection = sessionStorage.getItem('staff_selection');
+        if (selection) {
+            const data = JSON.parse(selection);
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    const targetInput = document.getElementById(item.target);
+                    if (targetInput) targetInput.value = `${item.id} ${item.name}`;
+                });
+            } else {
+                const targetInput = document.getElementById(data.target);
+                if (targetInput) targetInput.value = `${data.id} ${data.name}`;
+            }
+            sessionStorage.removeItem('staff_selection');
         }
 
-        // 직원 배정 화면으로 이동
-        window.location.href = "{{ url_for('admin.assign_staff') }}";
+        // --- Modal Logic ---
+        const form = document.getElementById('schedule_form');
+        const modal = document.getElementById('confirmation_modal');
+        const modalContentArea = document.getElementById('modal_content_area');
+        const confirmBtn = document.getElementById('modal_confirm_btn');
+        const cancelBtn = document.getElementById('modal_cancel_btn');
+
+        function handleFormSubmit(event) {
+            event.preventDefault(); // Stop direct submission
+
+            let confirmationHtml = '<dl class="confirmation-grid">';
+            formFields.forEach(id => {
+                const element = document.getElementById(id);
+                if (element && element.value) {
+                    let value = element.value;
+                    let label = fieldLabels[id] || id;
+
+                    if (id === 'dep_time' || id === 'arr_time') {
+                        const dateObj = new Date(value);
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        value = `${year}-${month}-${day} ${hours}:${minutes}`;
+                        label = fieldLabels[`${id}_display`] || label; 
+                    } else if (id === 'departure_airport' || id === 'arrival_airport') {
+                        const btn = document.getElementById(`select_${id}`);
+                        value = `${btn.querySelector('.main-text').textContent} ${btn.querySelector('.sub-text').textContent}`;
+                    } else if (id === 'captain' || id === 'co_pilot' || id === 'crew1' || id === 'crew2') {
+                        const match = value.match(/\(([^)]+)\)/);
+                        if (match && match[1]) {
+                            value = match[1];
+                        }
+                    }
+                    
+                    if (id === 'dep_time_display' || id === 'arr_time_display') {
+                        return; 
+                    }
+
+                    confirmationHtml += `<dt>${label}</dt><dd>${value}</dd>`;
+                }
+            });
+            confirmationHtml += '</dl>';
+            
+            modalContentArea.innerHTML = confirmationHtml;
+            modal.style.display = 'block';
+        }
+
+        form.addEventListener('submit', handleFormSubmit);
+
+        confirmBtn.onclick = function() {
+            form.removeEventListener('submit', handleFormSubmit); // Prevent loop
+            form.submit();
+        };
+
+        cancelBtn.onclick = function() {
+            modal.style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        };
     });
 </script>
 {% endblock %}

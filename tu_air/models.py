@@ -43,12 +43,11 @@ class Staff(db.Model):
     Name = db.Column(db.String(25), nullable=False)
     Role = db.Column(db.Enum('Pilot', 'Co-Pilot', 'Cabin Crew', 'Engineer', 'HR', 'Scheduler', 'CEO'), nullable=False)
     Department = db.Column(db.String(50), nullable=True)
-
-    # Crew_Assignment와의 관계 추가
-    crew_assignments = db.relationship('Crew_Assignment', back_populates='staff', cascade="all, delete-orphan")
+    
+    assignments = db.relationship('Crew_Assignment', back_populates='staff')
 
     def __repr__(self):
-        return f"<Staff {self.Staff_ID} ({self.Name}, {self.Role})>"
+        return f"<Staff {self.Staff_ID} ({self.Name})>"
 
 # --- [신규] Airport 모델 ---
 class Airport(db.Model):
@@ -79,7 +78,7 @@ class Flight(db.Model):
     seat_availabilities = db.relationship('Flight_Seat_Availability', back_populates='flight')
     aircraft = db.relationship('Aircraft', back_populates='flights')
     prices = db.relationship('Flight_Price', back_populates='flight', cascade="all, delete-orphan")
-    crew_assignments = db.relationship('Crew_Assignment', back_populates='flight', cascade="all, delete-orphan")
+    crew_assignments = db.relationship('Crew_Assignment', back_populates='flight')
 
 # --- [신규] Booking 모델 (Member, Flight와 관계 설정) ---
 class Booking(db.Model):
@@ -207,13 +206,10 @@ class Flight_Price(db.Model):
     # (관계: Flight_Price(N)가 Flight(1)에 속함)
     flight = db.relationship('Flight', back_populates='prices')
 
-# --- [신규] Crew_Assignment 모델 ---
 class Crew_Assignment(db.Model):
     __tablename__ = 'crew_assignment'
-    Assignment_ID = db.Column(db.String(15), primary_key=True)
-    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), nullable=False)
-    Staff_ID = db.Column(db.String(15), db.ForeignKey('staff.Staff_ID'), nullable=False)
+    Flight_ID = db.Column(db.String(15), db.ForeignKey('flight.Flight_ID'), primary_key=True)
+    Staff_ID = db.Column(db.String(15), db.ForeignKey('staff.Staff_ID'), primary_key=True)
 
-    # 관계 설정
     flight = db.relationship('Flight', back_populates='crew_assignments')
-    staff = db.relationship('Staff', back_populates='crew_assignments')
+    staff = db.relationship('Staff', back_populates='assignments')

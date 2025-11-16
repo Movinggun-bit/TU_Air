@@ -1,7 +1,135 @@
 {% extends "base.html" %}
-{% block title %}승무원 선택{% endblock %}
+{% block title %}{{ title }} 선택 - 관리자{% endblock %}
 
 {% block content %}
-<h1>승무원 선택</h1>
-<p>승무원을 선택하는 화면입니다.</p>
+<div class="aircraft-selection-container">
+    <div class="aircraft-selection-header">
+        <h1>{{ title }} 선택</h1>
+        <p class="aircraft-selection-subtitle">배정할 승무원 2명을 선택하세요.</p>
+    </div>
+
+    <!-- 선택된 승무원이 표시될 영역 -->
+    <div id="selected_crew_area" class="selected-crew-container">
+        <div id="selected_cards_wrapper" style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <!-- Selected crew cards will be moved here by JS -->
+        </div>
+        <div id="selection_complete_wrapper" style="display: none; margin-top: 20px; text-align: center;">
+            <button class="btn-register-submit" onclick="selectMultipleCrew()">2명 선택 완료</button>
+        </div>
+    </div>
+
+    {% if staffs %}
+    <section class="aircraft-category">
+        <div class="category-header">
+            <h2 class="category-title">
+                <span class="category-icon">👥</span>
+                {{ title }} 목록
+                <span class="category-badge">{{ staffs|length }}명</span>
+            </h2>
+        </div>
+        <div class="aircraft-grid" id="crew_grid">
+            {% for staff in staffs %}
+            <div class="aircraft-card" id="card-{{ staff.Staff_ID }}">
+                <div class="aircraft-card-header">
+                    <h3 class="aircraft-model">{{ staff.Name }}</h3>
+                    <span class="aircraft-id">ID: {{ staff.Staff_ID }}</span>
+                </div>
+                <div class="aircraft-card-body">
+                    <div class="aircraft-info-item">
+                        <span class="info-label">부서</span>
+                        <span class="info-value">{{ staff.Department }}</span>
+                    </div>
+                    <div class="aircraft-info-item">
+                        <span class="info-label">역할</span>
+                        <span class="info-value highlight">{{ staff.Role }}</span>
+                    </div>
+                </div>
+                <div class="aircraft-card-footer">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="crew-checkbox" 
+                               data-id="{{ staff.Staff_ID }}" 
+                               data-name="{{ staff.Name }}"
+                               onchange="handleCheckboxChange(this)">
+                        <label>선택</label>
+                    </div>
+                    <a href="{{ url_for('admin.staff_schedule', staff_id=staff.Staff_ID) }}" class="btn-aircraft-details">
+                        일정 보기
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <div class="aircraft-empty-state">
+        <p>등록된 {{ title }}이(가) 없습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const selectedCardsWrapper = document.getElementById('selected_cards_wrapper'); // New wrapper for selected cards
+    const crewGrid = document.getElementById('crew_grid');
+    const completeButtonWrapper = document.getElementById('selection_complete_wrapper');
+
+    function handleCheckboxChange(checkbox) {
+        const card = checkbox.closest('.aircraft-card');
+        const selectedCount = selectedCardsWrapper.querySelectorAll('.aircraft-card').length; // Count from new wrapper
+
+        if (checkbox.checked) {
+            if (selectedCount >= 2) {
+                checkbox.checked = false; // Prevent 3rd selection
+                alert('최대 2명까지만 선택할 수 있습니다.');
+                return;
+            }
+            // Move card to the new selected cards wrapper
+            selectedCardsWrapper.appendChild(card);
+            card.style.width = '45%'; // Apply width when selected
+        } else {
+            // Move card back to the main grid
+            crewGrid.prepend(card);
+            card.style.width = ''; // Remove width when unselected
+        }
+        updateUi();
+    }
+
+    function updateUi() {
+        const newSelectedCount = selectedCardsWrapper.querySelectorAll('.aircraft-card').length; // Count from new wrapper
+        if (newSelectedCount === 2) {
+            completeButtonWrapper.style.display = 'block';
+        } else {
+            completeButtonWrapper.style.display = 'none';
+        }
+    }
+
+    function selectMultipleCrew() {
+        const selectedCards = selectedCardsWrapper.querySelectorAll('.aircraft-card'); // Get from new wrapper
+        
+        if (selectedCards.length !== 2) {
+            alert("정확히 2명의 승무원을 선택해야 합니다.");
+            return;
+        }
+
+        const targets = "{{ target }}".split(',');
+        if (targets.length !== 2) {
+            alert("오류: 대상 필드를 찾을 수 없습니다.");
+            return;
+        }
+        
+        const selectionData = [];
+        selectedCards.forEach((card, index) => {
+            const checkbox = card.querySelector('.crew-checkbox');
+            selectionData.push({
+                target: targets[index],
+                id: checkbox.dataset.id,
+                name: `(${checkbox.dataset.name})`
+            });
+        });
+        
+        sessionStorage.setItem('staff_selection', JSON.stringify(selectionData));
+        window.location.href = "{{ url_for('admin.schedule_dashboard') }}";
+    }
+</script>
 {% endblock %}
