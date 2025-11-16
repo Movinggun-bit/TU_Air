@@ -154,7 +154,7 @@ def search_flights():
                 AND f.Arrival_Airport_Code = :arr_airport
                 AND DATE(f.Departure_Time) = :flight_date
                 AND sa_sub.available_seats >= :passenger_count
-                AND f.Flight_Status = 'On_Time'
+                AND f.Flight_Status in ('On_Time', 'Delayed')
             ORDER BY 
                 f.Departure_Time;
         """)

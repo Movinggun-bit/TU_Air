@@ -31,7 +31,8 @@
             {% if session.user_type == 'staff' %}
                 <nav class="main-nav">
                     {% if g.user.Role == 'Scheduler' %}
-                        <a href="{{ url_for('admin.schedule_dashboard') }}" class="active">항공편 편성</a>
+                        <a href="{{ url_for('admin.schedule_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.schedule_dashboard' else '' }}">항공편 편성</a>
+                        <a href="{{ url_for('admin.flight_management') }}" class="{{ 'active' if request.endpoint == 'admin.flight_management' else '' }}">항공편 관리</a>
                     {% endif %}
                 </nav>
             {% else %}

@@ -70,6 +70,7 @@ class Flight(db.Model):
     Arrival_Time = db.Column(db.DATETIME, nullable=False)
     Arrival_Gate = db.Column(db.String(10), nullable=False)
     Flight_Status = db.Column(db.Enum('On_Time', 'Delayed', 'Canceled'), nullable=False, default='On_Time')
+    Status_Reason = db.Column(db.String(255), nullable=True)
     
     # --- [관계 설정 2] ---
     # Flight가 Airport를 'departure_airport'와 'arrival_airport'로 참조합니다.

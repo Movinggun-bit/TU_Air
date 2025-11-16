@@ -1,0 +1,419 @@
+/* static/css/modules/16_page_flight_management.css */
+
+/* Centering the main content container */
+.admin-container {
+    max-width: 1560px; /* 적절한 최대 너비 설정 */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px; /* 좌우 여백 추가 */
+}
+
+/* --- 필터 디자인 개선 --- */
+.admin-filter-box {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 24px;
+}
+
+.admin-filter-form {
+    display: flex;
+    flex-direction: column; /* 필터 그룹과 버튼 그룹을 세로로 쌓음 */
+    gap: 20px;
+}
+
+.filter-inputs-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* 가능한 공간을 균등하게 차지 */
+    min-width: 150px; /* 최소 너비, 한 줄에 여러 개가 들어갈 수 있도록 */
+}
+
+.filter-group label {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.filter-group input[type="text"], select {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.filter-group input[type="text"]:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end; /* 버튼을 오른쪽으로 정렬 */
+    gap: 12px;
+    width: 100%;
+}
+
+.filter-actions .btn-primary,
+.filter-actions .btn-secondary {
+    padding: 10px 24px; /* 버튼 크기 키우기 */
+    font-size: 16px;   /* 버튼 글자 크기 키우기 */
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+}
+
+.filter-actions .btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.filter-actions .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.filter-actions .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.filter-actions .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+
+/* --- 테이블 스타일 개선 --- */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px 15px; /* 상하 간격 늘리고 좌우 간격 유지 */
+    font-size: 15px; /* 글자 크기 키우기 */
+    text-align: left; /* 기본 정렬 유지 */
+    border-bottom: 1px solid #eee;
+    white-space: nowrap; /* 내용이 길어도 줄바꿈 방지 */
+}
+
+.admin-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #333;
+}
+
+.admin-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* 짝수 행 배경색 */
+}
+
+.admin-table tbody tr:hover {
+    background-color: #e9ecef; /* 마우스 오버 시 배경색 변경 */
+}
+
+/* Status badges */
+.status-on_time { /* Enum 값에 따라 클래스명 변경 */
+    color: #28a745; /* Green */
+    font-weight: bold;
+}
+
+.status-delayed {
+    color: #ffc107; /* Yellow/Orange */
+    font-weight: bold;
+}
+
+.status-canceled {
+    color: #dc3545; /* Red */
+    font-weight: bold;
+}
+
+.admin-table .btn-action {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    color: white;
+    font-size: 13px;
+    margin-right: 5px;
+}
+
+.admin-table .btn-action.btn-edit {
+    background-color: #3498db;
+}
+
+.admin-table .btn-action.btn-cancel {
+    background-color: #e74c3c;
+}
+
+.admin-table .btn-action.btn-cancel-flight {
+    background-color: #dc3545; /* Red for cancel */
+}
+
+.admin-table .btn-action.btn-cancel-flight:hover {
+    background-color: #c82333;
+}
+
+.admin-table .no-data {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+}
+
+.airport-select-display {
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    height: 25px; /* 다른 input과 높이 맞춤 */
+}
+
+.airport-select-display:hover {
+    border-color: #80bdff;
+}
+
+/* --- Delay Flight Modal Styles --- */
+#delay-flight-modal.modal-overlay {
+    display: none; /* 기본적으로 숨김 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#delay-flight-modal .modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 500px; /* 적절한 최대 너비 */
+    position: relative;
+}
+
+#delay-flight-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+#delay-flight-modal .modal-header h3 {
+    margin: 0;
+    font-size: 22px;
+    color: #333;
+}
+
+#delay-flight-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+}
+
+#delay-flight-modal .modal-close:hover {
+    color: #333;
+}
+
+#delay-flight-modal .modal-body .form-group {
+    margin-bottom: 15px;
+}
+
+#delay-flight-modal .modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+}
+
+#delay-flight-modal .modal-body .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+}
+
+#delay-flight-modal .modal-body .form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+#delay-flight-modal .modal-body .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+#delay-flight-modal .modal-body .btn-primary,
+#delay-flight-modal .modal-body .btn-secondary {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+}
+
+#delay-flight-modal .modal-body .btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+#delay-flight-modal .modal-body .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+#delay-flight-modal .modal-body .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+#delay-flight-modal .modal-body .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* --- Cancel Flight Modal Styles --- */
+#cancel-flight-modal.modal-overlay {
+    display: none; /* 기본적으로 숨김 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#cancel-flight-modal .modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 500px; /* 적절한 최대 너비 */
+    position: relative;
+}
+
+#cancel-flight-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+#cancel-flight-modal .modal-header h3 {
+    margin: 0;
+    font-size: 22px;
+    color: #333;
+}
+
+#cancel-flight-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+}
+
+#cancel-flight-modal .modal-close:hover {
+    color: #333;
+}
+
+#cancel-flight-modal .modal-body .form-group {
+    margin-bottom: 15px;
+}
+
+#cancel-flight-modal .modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+}
+
+#cancel-flight-modal .modal-body .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+}
+
+#cancel-flight-modal .modal-body .form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+#cancel-flight-modal .modal-body .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+#cancel-flight-modal .modal-body .btn-primary,
+#cancel-flight-modal .modal-body .btn-secondary {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+}
+
+#cancel-flight-modal .modal-body .btn-primary {
+    background-color: #dc3545; /* Red for cancel */
+    color: white;
+}
+
+#cancel-flight-modal .modal-body .btn-primary:hover {
+    background-color: #c82333;
+}
+
+#cancel-flight-modal .modal-body .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+#cancel-flight-modal .modal-body .btn-secondary:hover {
+    background-color: #5a6268;
+}
+/* Styling for disabled action buttons */
+.admin-table .btn-action[disabled] {
+    background-color: #cccccc; /* Gray background */
+    color: #666666;             /* Darker gray text */
+    cursor: not-allowed;        /* Indicate non-interactiveness */
+    opacity: 0.7;               /* Slightly faded appearance */
+}

@@ -49,3 +49,6 @@
 
 /* 15. 관리자 페이지 (Admin) 스타일 */
 @import url("modules/15_page_admin.css");
+
+/* 16. 항공편 관리 페이지 (Flight Management) 스타일 */
+@import url("modules/16_page_flight_management.css");
