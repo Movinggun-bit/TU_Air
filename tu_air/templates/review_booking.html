@@ -2,7 +2,9 @@
 {% block title %}예약 확인 및 결제 - TU Air{% endblock %}
 
 {% block content %}
-<div class="register-container"> 
+<div class="register-container" 
+     data-total-price="{{ booking_info.total_price }}" 
+     data-user-mileage="{{ user_mileage or 0 }}"> 
     <h1 class="register-title">예약 확인</h1>
 
     {% with messages = get_flashed_messages() %}
@@ -56,8 +58,38 @@
             </ul>
         </div>
 
-        <div class="total-summary-final">
-            총 결제 금액: <strong>KRW {{ "{:,.0f}".format(booking_info.total_price) }}</strong>
+        <div class="passenger-form-box">
+            <h2 class="pax-header">결제 정보</h2>
+            
+            <div class="review-price-item">
+                <span>총 항공운임</span>
+                <span id="original_total_price">KRW {{ "{:,.0f}".format(booking_info.total_price) }}</span>
+            </div>
+
+            {% if is_member and user_mileage >= 0 %}
+            <div class="review-price-item">
+                <span>보유 마일리지</span>
+                <span>{{ "{:,.0f}".format(user_mileage) }} P</span>
+            </div>
+
+            <div class="mileage-usage-section">
+                <div class="form-check">
+                    <input type="checkbox" id="use_mileage_checkbox" class="form-check-input">
+                    <label for="use_mileage_checkbox" class="form-check-label">마일리지 사용</label>
+                </div>
+                <div id="mileage_input_container" style="display: none; margin-top: 10px;">
+                    <input type="number" id="mileage_to_use" name="mileage_to_use" class="form-control" placeholder="사용할 마일리지 입력">
+                    <small id="mileage_error" class="form-text text-danger" style="display: none;"></small>
+                </div>
+            </div>
+            <input type="hidden" name="used_mileage" id="used_mileage" value="0">
+            {% endif %}
+
+            <hr class="price-divider">
+
+            <div class="total-summary-final">
+                최종 결제 금액: <strong id="final_price_display">KRW {{ "{:,.0f}".format(booking_info.total_price) }}</strong>
+            </div>
         </div>
 
         <button type="submit" class="btn-register-submit">
@@ -65,4 +97,88 @@
         </button>
     </form>
 </div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('.register-container');
+    const form = document.querySelector('.register-form');
+    const useMileageCheckbox = document.getElementById('use_mileage_checkbox');
+    const mileageInputContainer = document.getElementById('mileage_input_container');
+    const mileageToUseInput = document.getElementById('mileage_to_use');
+    const usedMileageHiddenInput = document.getElementById('used_mileage');
+    const mileageError = document.getElementById('mileage_error');
+    const finalPriceDisplay = document.getElementById('final_price_display');
+    
+    const originalTotalPrice = parseFloat(container.dataset.totalPrice);
+    const availableMileage = parseInt(container.dataset.userMileage, 10);
+
+    // 순수 유효성 검사 함수: 오류 메시지를 반환하거나, 유효하면 null을 반환합니다.
+    function getMileageValidationError() {
+        if (!mileageToUseInput || !useMileageCheckbox.checked) {
+            return null;
+        }
+        let mileageToUse = parseInt(mileageToUseInput.value, 10) || 0;
+
+        if (mileageToUse < 0) {
+            return "마일리지는 0보다 작을 수 없습니다.";
+        }
+
+        let maxUsableMileage = Math.min(availableMileage, originalTotalPrice);
+
+        if (mileageToUse > maxUsableMileage) {
+            return `사용 가능한 마일리지는 최대 ${maxUsableMileage.toLocaleString()} P 입니다.`;
+        }
+        
+        return null; // 오류 없음
+    }
+
+    // UI 업데이트 함수
+    function updateFinalPrice(mileageUsed) {
+        const finalPrice = originalTotalPrice - mileageUsed;
+        finalPriceDisplay.textContent = `KRW ${finalPrice.toLocaleString()}`;
+        usedMileageHiddenInput.value = mileageUsed;
+    }
+
+    // 이벤트 리스너 설정
+    if (useMileageCheckbox) {
+        useMileageCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                mileageInputContainer.style.display = 'block';
+            } else {
+                mileageInputContainer.style.display = 'none';
+                mileageToUseInput.value = '';
+                mileageError.style.display = 'none';
+                updateFinalPrice(0);
+            }
+        });
+    }
+
+    if (mileageToUseInput) {
+        mileageToUseInput.addEventListener('input', function () {
+            const errorMessage = getMileageValidationError();
+            if (errorMessage) {
+                mileageError.textContent = errorMessage;
+                mileageError.style.display = 'block';
+                updateFinalPrice(0);
+            } else {
+                mileageError.style.display = 'none';
+                let mileageToUse = parseInt(this.value, 10) || 0;
+                updateFinalPrice(mileageToUse);
+            }
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            const errorMessage = getMileageValidationError();
+            if (errorMessage) {
+                event.preventDefault(); // 폼 제출 중단
+                alert(errorMessage);    // 단일 알림 표시
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

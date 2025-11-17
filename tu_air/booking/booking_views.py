@@ -463,6 +463,14 @@ def review_booking():
         inbound_seats_ids = booking_info.get('inbound_seats', [])
         inbound_seats_nos = [Seat.query.get(sid).Seat_No for sid in inbound_seats_ids]
 
+    # (마일리지 정보 추가)
+    user_mileage = 0
+    is_member = g.user and not session.get('is_guest', False)
+    if is_member:
+        member = Member.query.get(g.user.Member_ID)
+        if member:
+            user_mileage = member.mileage
+
     return render_template('review_booking.html',
                            booking_info=booking_info,
                            passengers=passengers,
@@ -470,7 +478,9 @@ def review_booking():
                            outbound_seats=outbound_seats_nos,
                            inbound_flight=inbound_flight,
                            inbound_seats=inbound_seats_nos,
-                           is_guest=session.get('is_guest', False))
+                           is_guest=session.get('is_guest', False),
+                           user_mileage=user_mileage, # (마일리지 전달)
+                           is_member=is_member)
 
 # [!!!] (신규) 3. 예약 번호 생성 헬퍼 함수 (finalize_booking 위에 추가) [!!!]
 def generate_unique_booking_id(length=15):
@@ -499,8 +509,37 @@ def finalize_booking():
         return redirect(url_for('main.home'))
     
     is_guest_booking = session.get('is_guest', False)
+    is_member_booking = g.user and not is_guest_booking
 
     try:
+        # (마일리지 처리)
+        used_mileage = 0
+        if is_member_booking:
+            try:
+                used_mileage = int(request.form.get('used_mileage', 0))
+            except (ValueError, TypeError):
+                used_mileage = 0
+
+            member = Member.query.get(g.user.Member_ID)
+            if not member:
+                raise Exception("로그인한 회원 정보를 찾을 수 없습니다.")
+
+            # (서버사이드 마일리지 검증)
+            if used_mileage <= 0:
+                used_mileage = 0
+            if used_mileage > member.mileage:
+                flash('보유 마일리지를 초과하여 사용할 수 없습니다.')
+                return redirect(url_for('booking.review_booking'))
+            if used_mileage > booking_info['total_price']:
+                flash('총 결제 금액보다 많은 마일리지를 사용할 수 없습니다.')
+                return redirect(url_for('booking.review_booking'))
+            
+            # (마일리지 차감)
+            member.mileage -= used_mileage
+            db.session.add(member)
+
+        final_payment_amount = booking_info['total_price'] - used_mileage
+
         guest_id_to_save = None
         
         # [!!!] (R3) 1. (비회원일 경우) Guest 테이블 INSERT [!!!]
@@ -531,7 +570,7 @@ def finalize_booking():
         new_booking_id = generate_unique_booking_id(15)
         new_booking = Booking(
             Booking_ID=new_booking_id,
-            Member_ID=g.user.Member_ID if g.user and not session.get('is_guest', False) else None,
+            Member_ID=g.user.Member_ID if is_member_booking else None,
             Guest_ID=guest_id_to_save,
             Outbound_Flight_ID=booking_info['outbound_flight_id'],
             Return_Flight_ID=booking_info.get('inbound_flight_id'),
@@ -582,7 +621,7 @@ def finalize_booking():
         # (3. Payment 테이블 INSERT)
         new_payment = Payment(
             Booking_ID=new_booking_id,
-            Amount=booking_info['total_price'],
+            Amount=final_payment_amount, # (마일리지 차감된 최종 금액)
             Payment_Date=datetime.datetime.now(),
             status='Paid' # (결제 성공으로 간주)
         )
