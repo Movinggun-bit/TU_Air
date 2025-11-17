@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}관리자 홈 - TU Air{% endblock %}
+
+{% block content %}
+<div class="mypage-container"> 
+    <h1 class="mypage-title">TU Air 관리자 홈</h1>
+    
+    <div class="booking-card">
+        <div class="booking-card-body">
+            <p style="font-size: 18px;">
+                <strong>{{ g.user.Name }}</strong>님 (역할: {{ g.user.Role }}) 환영합니다.
+            </p>
+            <p>이곳은 TU Air 직원 전용 관리자 페이지입니다.</p>
+            
+            {% if g.user.Role == 'Scheduler' %}
+                <p>항공편 편성을 위해 <a href="{{ url_for('admin.schedule_dashboard') }}" style="text-decoration: underline; color: #004a99; font-weight: 600;">편성 대시보드</a>로 이동하세요.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

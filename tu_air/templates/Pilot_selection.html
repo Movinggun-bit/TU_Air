@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} 선택 - 관리자{% endblock %}
+
+{% block content %}
+<div class="aircraft-selection-container">
+    <div class="aircraft-selection-header">
+        <h1>{{ title }} 선택</h1>
+        <p class="aircraft-selection-subtitle">배정할 {{ title }}(을)를 선택하세요.</p>
+    </div>
+
+    {% if staffs %}
+    <section class="aircraft-category">
+        <div class="category-header">
+            <h2 class="category-title">
+                <span class="category-icon">👤</span>
+                {{ title }} 목록
+                <span class="category-badge">{{ staffs|length }}명</span>
+            </h2>
+        </div>
+        <div class="aircraft-grid">
+            {% for staff in staffs %}
+            <div class="aircraft-card">
+                <div class="aircraft-card-header">
+                    <h3 class="aircraft-model">{{ staff.Name }}</h3>
+                    <span class="aircraft-id">ID: {{ staff.Staff_ID }}</span>
+                </div>
+                <div class="aircraft-card-body">
+                    <div class="aircraft-info-item">
+                        <span class="info-label">부서</span>
+                        <span class="info-value">{{ staff.Department }}</span>
+                    </div>
+                    <div class="aircraft-info-item">
+                        <span class="info-label">역할</span>
+                        <span class="info-value highlight">{{ staff.Role }}</span>
+                    </div>
+                </div>
+                <div class="aircraft-card-footer">
+                    <button class="btn-aircraft-select" onclick="selectStaff('{{ staff.Staff_ID }}', '{{ staff.Name }}')">
+                        선택
+                    </button>
+                    <a href="{{ url_for('admin.staff_schedule', staff_id=staff.Staff_ID) }}" class="btn-aircraft-details">
+                        일정 보기
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <div class="aircraft-empty-state">
+        <p>등록된 {{ title }}이(가) 없습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function selectStaff(staffId, staffName) {
+        const target = "{{ target }}";
+        if (!target) {
+            alert("오류: 대상 필드를 찾을 수 없습니다.");
+            return;
+        }
+        
+        const selection = {
+            target: target,
+            id: staffId,
+            name: `(${staffName})`
+        };
+        sessionStorage.setItem('staff_selection', JSON.stringify(selection));
+        
+        window.location.href = "{{ url_for('admin.schedule_dashboard') }}";
+    }
+</script>
+{% endblock %}

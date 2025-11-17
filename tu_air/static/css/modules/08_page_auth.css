@@ -123,6 +123,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     padding: 30px 40px;
+    overflow: visible; /* 달력이 잘리지 않도록 */
 }
 
 .register-title {
@@ -150,7 +151,8 @@
     font-weight: 500;
 }
 
-.form-input-register {
+.form-input-register,
+.form-input-register.form-input-btn { /* (!!! R2: .form-input-btn에도 적용 !!!) */
     width: 100%;
     height: 48px;
     padding: 10px 12px;
@@ -158,6 +160,9 @@
     border-radius: 4px;
     font-size: 16px;
     box-sizing: border-box;
+}
+.form-input-register.form-input-btn {
+    padding: 0; /* (내부 flex 정렬을 위해 패딩 제거) */
 }
 .form-input-register-static {
     width: 100%;

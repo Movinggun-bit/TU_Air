@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+
+{% block title %}항공편 관리 - TU Air (Admin){% endblock %}
+
+{% block head_style %}
+<link rel="stylesheet" href="{{ url_for('main.static', filename='css/modules/15_page_admin.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('main.static', filename='css/modules/16_page_flight_management.css') }}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1 class="admin-title">항공편 관리</h1>
+    <p class="admin-description">이 페이지에서 항공편의 상태를 변경하거나 세부 정보를 수정할 수 있습니다.</p>
+
+    <!-- 검색 필터 폼 -->
+    <div class="admin-filter-box">
+        <form method="GET" action="{{ url_for('admin.flight_management') }}" class="admin-filter-form">
+            <div class="filter-inputs-wrapper">
+                <div class="filter-group">
+                    <label for="aircraft_id">항공기 ID</label>
+                    <input type="text" id="aircraft_id" name="aircraft_id" value="{{ search_filters.get('aircraft_id', '') }}" placeholder="예: TUA01">
+                </div>
+                <div class="filter-group">
+                    <label for="flight_no">항공편명</label>
+                    <input type="text" id="flight_no" name="flight_no" value="{{ search_filters.get('flight_no', '') }}" placeholder="예: TA001">
+                </div>
+                <div class="filter-group">
+                    <label for="model">기종</label>
+                    <input type="text" id="model" name="model" value="{{ search_filters.get('model', '') }}" placeholder="예: A380">
+                </div>
+                <div class="filter-group">
+                    <label for="manufacturer">제조사</label>
+                    <input type="text" id="manufacturer" name="manufacturer" value="{{ search_filters.get('manufacturer', '') }}" placeholder="예: Airbus">
+                </div>
+                <div class="filter-group">
+                    <label>출발지</label>
+                    <div class="airport-select-display" data-target="dep_airport">
+                        <span>{{ search_filters.get('dep_airport') or '공항 선택' }}</span>
+                    </div>
+                    <input type="hidden" id="dep_airport" name="dep_airport" value="{{ search_filters.get('dep_airport', '') }}">
+                </div>
+                <div class="filter-group">
+                    <label>도착지</label>
+                    <div class="airport-select-display" data-target="arr_airport">
+                        <span>{{ search_filters.get('arr_airport') or '공항 선택' }}</span>
+                    </div>
+                    <input type="hidden" id="arr_airport" name="arr_airport" value="{{ search_filters.get('arr_airport', '') }}">
+                </div>
+                <div class="filter-group">
+                    <label for="start_date">기간 (시작)</label>
+                    <input type="text" id="start_date" name="start_date" class="flatpickr" value="{{ search_filters.get('start_date', '') }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="filter-group">
+                    <label for="end_date">기간 (종료)</label>
+                    <input type="text" id="end_date" name="end_date" class="flatpickr" value="{{ search_filters.get('end_date', '') }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="filter-group">
+                    <label for="flight_status">상태</label>
+                    <select id="flight_status" name="flight_status" class="form-control">
+                        <option value="">모두</option>
+                        <option value="On_Time" {% if search_filters.get('flight_status') == 'On_Time' %}selected{% endif %}>정시</option>
+                        <option value="Delayed" {% if search_filters.get('flight_status') == 'Delayed' %}selected{% endif %}>지연</option>
+                        <option value="Canceled" {% if search_filters.get('flight_status') == 'Canceled' %}selected{% endif %}>취소됨</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn-primary">검색</button>
+                <a href="{{ url_for('admin.flight_management') }}" class="btn-secondary">초기화</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-content-box">
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>항공편 ID</th>
+                        <th>편명</th>
+                        <th>항공기 ID</th>
+                        <th>기종</th>
+                        <th>제조사</th>
+                        <th>출발지</th>
+                        <th>도착지</th>
+                        <th>출발 시간</th>
+                        <th>도착 시간</th>
+                        <th>상태</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if flights %}
+                        {% for flight in flights %}
+                        <tr>
+                            <td>{{ flight.Flight_ID }}</td>
+                            <td>{{ flight.Flight_No }}</td>
+                            <td>{{ flight.Aircraft_ID }}</td>
+                            <td>{{ flight.aircraft.Model }}</td>
+                            <td>{{ flight.aircraft.Manufacturer }}</td>
+                            <td>{{ flight.Departure_Airport_Code }}</td>
+                            <td>{{ flight.Arrival_Airport_Code }}</td>
+                            <td>{{ flight.Departure_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="status-{{ flight.Flight_Status.lower() }}">{{ flight.Flight_Status }}</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn-action btn-delay" data-flight-id="{{ flight.Flight_ID }}" data-current-dep-time="{{ flight.Departure_Time.strftime('%Y-%m-%dT%H:%M') }}" data-current-arr-time="{{ flight.Arrival_Time.strftime('%Y-%m-%dT%H:%M') }}" {% if flight.Flight_Status == 'Canceled' %}disabled{% endif %}>지연</button>
+                                <button type="button" class="btn-action btn-cancel-flight" data-flight-id="{{ flight.Flight_ID }}" {% if flight.Flight_Status == 'Canceled' %}disabled{% endif %}>취소</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="no-data">
+                            {% if search_filters %}
+                                검색 조건에 맞는 항공편이 없습니다.
+                            {% else %}
+                                표시할 항공편이 없습니다.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include '_airport_modal.html' %}
+
+{# 항공편 지연 처리 모달 #}
+<div class="modal-overlay" id="delay-flight-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>항공편 지연 처리</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="delay-flight-form" method="POST" action="{{ url_for('admin.delay_flight') }}">
+                <input type="hidden" name="flight_id" id="delay-flight-id">
+                <div class="form-group">
+                    <label for="new_departure_time">새 출발 시간:</label>
+                    <input type="datetime-local" id="new_departure_time" name="new_departure_time" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="new_arrival_time">새 도착 시간:</label>
+                    <input type="datetime-local" id="new_arrival_time" name="new_arrival_time" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="delay_reason">지연 사유:</label>
+                    <textarea id="delay_reason" name="delay_reason" class="form-control" rows="4" required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">확인</button>
+                    <button type="button" class="btn-secondary modal-cancel">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# 항공편 취소 처리 모달 #}
+<div class="modal-overlay" id="cancel-flight-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>항공편 취소 처리</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="cancel-flight-form" method="POST" action="{{ url_for('admin.cancel_flight') }}">
+                <input type="hidden" name="flight_id" id="cancel-flight-id">
+                <div class="form-group">
+                    <label for="cancel_reason">취소 사유:</label>
+                    <textarea id="cancel_reason" name="cancel_reason" class="form-control" rows="4" required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">확인</button>
+                    <button type="button" class="btn-secondary modal-cancel">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Flatpickr 초기화
+    // flatpickr(".flatpickr", {
+    //     dateFormat: "Y-m-d",
+    //     locale: "ko"
+    // });
+
+    // --- 공항 선택 모달 로직 (v3 - main.js 로직 기반으로 수정) ---
+    const airportModal = document.getElementById('airport_modal');
+    const airportSelectDisplays = document.querySelectorAll('.airport-select-display');
+    const closeModalBtn = document.querySelector('#airport_modal .modal-close');
+    let activeTargetInputId = null;
+    let airportsData = null;
+
+    async function fetchAirports() {
+        if (airportsData) return airportsData;
+        try {
+            const response = await fetch("{{ url_for('main.get_airports') }}");
+            if (!response.ok) throw new Error('Network response was not ok.');
+            airportsData = await response.json();
+            return airportsData;
+        } catch (error) {
+            console.error('Failed to fetch airports:', error);
+            return null;
+        }
+    }
+
+    function createCityElement(city) {
+        const el = document.createElement('div');
+        el.className = 'city-item';
+        el.dataset.code = city.Airport_Code;
+        el.dataset.name = city.City;
+        el.innerHTML = `<span class="city-name">${city.City}</span><span class="city-code">${city.Airport_Code}</span>`;
+        el.addEventListener('click', () => selectAirport(city));
+        return el;
+    }
+
+    function populateModal(data) {
+        const tabsContainer = airportModal.querySelector('.modal-tabs');
+        const listContainer = airportModal.querySelector('.modal-list');
+        tabsContainer.innerHTML = '';
+        listContainer.innerHTML = '';
+
+        const createPane = (id) => {
+            const pane = document.createElement('div');
+            pane.id = `pane-${id}`;
+            pane.className = 'continent-pane';
+            return pane;
+        };
+
+        // 대한민국
+        const koreaTab = document.createElement('button');
+        koreaTab.textContent = '대한민국';
+        koreaTab.dataset.continent = 'korea';
+        tabsContainer.appendChild(koreaTab);
+        const koreaPane = createPane('korea');
+        const koreaGroup = document.createElement('div');
+        koreaGroup.className = 'country-group';
+        data.korea.forEach(city => koreaGroup.appendChild(createCityElement(city)));
+        koreaPane.appendChild(koreaGroup);
+        listContainer.appendChild(koreaPane);
+
+        // 다른 대륙
+        for (const [continent, countries] of Object.entries(data.continents)) {
+            const tab = document.createElement('button');
+            tab.textContent = continent;
+            tab.dataset.continent = continent;
+            tabsContainer.appendChild(tab);
+            const pane = createPane(continent);
+            for (const [country, cities] of Object.entries(countries)) {
+                const countryGroup = document.createElement('div');
+                countryGroup.className = 'country-group';
+                const countryName = document.createElement('div');
+                countryName.className = 'country-name';
+                countryName.textContent = country;
+                countryGroup.appendChild(countryName);
+                cities.forEach(city => countryGroup.appendChild(createCityElement(city)));
+                pane.appendChild(countryGroup);
+            }
+            listContainer.appendChild(pane);
+        }
+
+        // 탭 클릭 이벤트
+        tabsContainer.querySelectorAll('button').forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (tabsContainer.querySelector('button.active')) {
+                    tabsContainer.querySelector('button.active').classList.remove('active');
+                }
+                if (listContainer.querySelector('.continent-pane.active')) {
+                    listContainer.querySelector('.continent-pane.active').classList.remove('active');
+                }
+                tab.classList.add('active');
+                document.getElementById(`pane-${tab.dataset.continent}`).classList.add('active');
+            });
+        });
+        
+        // 초기 활성 탭 설정
+        tabsContainer.querySelector('button').click();
+    }
+
+    function selectAirport(city) {
+        const targetDisplay = document.querySelector(`.airport-select-display[data-target="${activeTargetInputId}"] span`);
+        const targetInput = document.getElementById(activeTargetInputId);
+        if (targetDisplay && targetInput) {
+            targetDisplay.textContent = `${city.City} (${city.Airport_Code})`;
+            targetInput.value = city.Airport_Code;
+        }
+        closeModal();
+    }
+
+    function openModal(targetId) {
+        activeTargetInputId = targetId;
+        airportModal.style.display = 'flex';
+        if (!airportModal.dataset.loaded) {
+            fetchAirports().then(data => {
+                if (data) {
+                    populateModal(data);
+                    airportModal.dataset.loaded = 'true';
+                }
+            });
+        }
+    }
+
+    function closeModal() {
+        airportModal.style.display = 'none';
+    }
+
+    airportSelectDisplays.forEach(display => {
+        display.addEventListener('click', () => openModal(display.dataset.target));
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+    airportModal.addEventListener('click', e => {
+        if (e.target === airportModal) closeModal();
+    });
+
+    // --- 항공편 지연 모달 로직 ---
+    const delayFlightModal = document.getElementById('delay-flight-modal');
+    const delayFlightForm = document.getElementById('delay-flight-form');
+    const delayFlightIdInput = document.getElementById('delay-flight-id');
+    const newDepartureTimeInput = document.getElementById('new_departure_time');
+    const newArrivalTimeInput = document.getElementById('new_arrival_time');
+    const delayReasonInput = document.getElementById('delay_reason');
+    const delayButtons = document.querySelectorAll('.btn-delay');
+    const delayModalCloseBtn = delayFlightModal.querySelector('.modal-close');
+    const delayModalCancelBtn = delayFlightModal.querySelector('.modal-cancel');
+
+    delayButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const flightId = this.dataset.flightId;
+            const currentDepTime = this.dataset.currentDepTime;
+            const currentArrTime = this.dataset.currentArrTime;
+
+            delayFlightIdInput.value = flightId;
+            newDepartureTimeInput.value = currentDepTime; // Pre-populate with current time
+            newArrivalTimeInput.value = currentArrTime;   // Pre-populate with current time
+            delayReasonInput.value = ''; // Clear previous reason
+            delayFlightModal.style.display = 'flex';
+        });
+    });
+
+    function closeDelayModal() {
+        delayFlightModal.style.display = 'none';
+    }
+
+    delayModalCloseBtn.addEventListener('click', closeDelayModal);
+    delayModalCancelBtn.addEventListener('click', closeDelayModal);
+    delayFlightModal.addEventListener('click', function(e) {
+        if (e.target === delayFlightModal) {
+            closeDelayModal();
+        }
+    });
+
+    // --- 항공편 취소 모달 로직 ---
+    const cancelFlightModal = document.getElementById('cancel-flight-modal');
+    const cancelFlightForm = document.getElementById('cancel-flight-form');
+    const cancelFlightIdInput = document.getElementById('cancel-flight-id');
+    const cancelReasonInput = document.getElementById('cancel_reason');
+    const cancelButtons = document.querySelectorAll('.btn-cancel-flight');
+    const cancelModalCloseBtn = cancelFlightModal.querySelector('.modal-close');
+    const cancelModalCancelBtn = cancelFlightModal.querySelector('.modal-cancel');
+
+    // Add console.log to confirm event listener attachment
+    console.log(`Found ${cancelButtons.length} cancel buttons.`);
+
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('Cancel button clicked for flight:', this.dataset.flightId); // Log button click
+            const flightId = this.dataset.flightId;
+            cancelFlightIdInput.value = flightId;
+            cancelReasonInput.value = ''; // Clear previous reason
+            cancelFlightModal.style.display = 'flex';
+        });
+    });
+
+    function closeCancelModal() {
+        cancelFlightModal.style.display = 'none';
+    }
+
+    cancelModalCloseBtn.addEventListener('click', closeCancelModal);
+    cancelModalCancelBtn.addEventListener('click', closeCancelModal);
+    cancelFlightModal.addEventListener('click', function(e) {
+        if (e.target === cancelFlightModal) {
+            closeCancelModal();
+        }
+    });
+
+    // Correctly placed submit event listener for the form
+    cancelFlightForm.addEventListener('submit', function(event) {
+        console.log('Cancel Flight Form submitted!'); // Log form submission
+        // The form will submit normally, no preventDefault needed unless we want AJAX
+        // For now, let the form submit and the server redirect
+        // closeCancelModal(); // Do NOT close here, let the server redirect handle it
+    });
+});
+</script>
+{% endblock %}

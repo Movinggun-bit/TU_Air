@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}항공기 선택 - 관리자{% endblock %}
+
+{% block content %}
+<div class="aircraft-selection-container">
+    <div class="aircraft-selection-header">
+        <h1>항공기 선택</h1>
+        <p class="aircraft-selection-subtitle">편성할 항공기를 선택하세요</p>
+    </div>
+
+    {% if small_aircraft %}
+    <section class="aircraft-category">
+        <div class="category-header">
+            <h2 class="category-title">
+                <span class="category-icon">✈️</span>
+                소형기
+                <span class="category-badge">{{ small_aircraft|length }}대</span>
+            </h2>
+            <p class="category-description">좌석 수 179석 이하</p>
+        </div>
+        <div class="aircraft-grid">
+            {% for ac in small_aircraft %}
+            <div class="aircraft-card">
+                <div class="aircraft-card-header">
+                    <h3 class="aircraft-model">{{ ac.Model }}</h3>
+                    <span class="aircraft-id">ID: {{ ac.Aircraft_ID }}</span>
+                </div>
+                <div class="aircraft-card-body">
+                    <div class="aircraft-info-item">
+                        <span class="info-label">제조사</span>
+                        <span class="info-value">{{ ac.Manufacturer }}</span>
+                    </div>
+                    <div class="aircraft-info-item">
+                        <span class="info-label">좌석 수</span>
+                        <span class="info-value highlight">{{ ac.Seat_Capacity }}석</span>
+                    </div>
+                </div>
+                <div class="aircraft-card-footer">
+                    <button class="btn-aircraft-select" onclick="selectAircraft('{{ ac.Aircraft_ID }}')">
+                        선택
+                    </button>
+                    <a href="{{ url_for('admin.aircraft_schedule', aircraft_id=ac.Aircraft_ID) }}" class="btn-aircraft-details">
+                        일정 보기
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if medium_aircraft %}
+    <section class="aircraft-category">
+        <div class="category-header">
+            <h2 class="category-title">
+                <span class="category-icon">🛫</span>
+                중형기
+                <span class="category-badge">{{ medium_aircraft|length }}대</span>
+            </h2>
+            <p class="category-description">좌석 수 180~299석</p>
+        </div>
+        <div class="aircraft-grid">
+            {% for ac in medium_aircraft %}
+            <div class="aircraft-card">
+                <div class="aircraft-card-header">
+                    <h3 class="aircraft-model">{{ ac.Model }}</h3>
+                    <span class="aircraft-id">ID: {{ ac.Aircraft_ID }}</span>
+                </div>
+                <div class="aircraft-card-body">
+                    <div class="aircraft-info-item">
+                        <span class="info-label">제조사</span>
+                        <span class="info-value">{{ ac.Manufacturer }}</span>
+                    </div>
+                    <div class="aircraft-info-item">
+                        <span class="info-label">좌석 수</span>
+                        <span class="info-value highlight">{{ ac.Seat_Capacity }}석</span>
+                    </div>
+                </div>
+                <div class="aircraft-card-footer">
+                    <button class="btn-aircraft-select" onclick="selectAircraft('{{ ac.Aircraft_ID }}')">
+                        선택
+                    </button>
+                    <a href="{{ url_for('admin.aircraft_schedule', aircraft_id=ac.Aircraft_ID) }}" class="btn-aircraft-details">
+                        일정 보기
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if large_aircraft %}
+    <section class="aircraft-category">
+        <div class="category-header">
+            <h2 class="category-title">
+                <span class="category-icon">🛩️</span>
+                대형기
+                <span class="category-badge">{{ large_aircraft|length }}대</span>
+            </h2>
+            <p class="category-description">좌석 수 300석 이상</p>
+        </div>
+        <div class="aircraft-grid">
+            {% for ac in large_aircraft %}
+            <div class="aircraft-card">
+                <div class="aircraft-card-header">
+                    <h3 class="aircraft-model">{{ ac.Model }}</h3>
+                    <span class="aircraft-id">ID: {{ ac.Aircraft_ID }}</span>
+                </div>
+                <div class="aircraft-card-body">
+                    <div class="aircraft-info-item">
+                        <span class="info-label">제조사</span>
+                        <span class="info-value">{{ ac.Manufacturer }}</span>
+                    </div>
+                    <div class="aircraft-info-item">
+                        <span class="info-label">좌석 수</span>
+                        <span class="info-value highlight">{{ ac.Seat_Capacity }}석</span>
+                    </div>
+                </div>
+                <div class="aircraft-card-footer">
+                    <button class="btn-aircraft-select" onclick="selectAircraft('{{ ac.Aircraft_ID }}')">
+                        선택
+                    </button>
+                    <a href="{{ url_for('admin.aircraft_schedule', aircraft_id=ac.Aircraft_ID) }}" class="btn-aircraft-details">
+                        일정 보기
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not small_aircraft and not medium_aircraft and not large_aircraft %}
+    <div class="aircraft-empty-state">
+        <p>등록된 항공기가 없습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function selectAircraft(aircraftId) {
+        const url = "{{ url_for('admin.schedule_dashboard') }}";
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_aircraft_id';
+        input.value = aircraftId;
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+{% endblock %}
