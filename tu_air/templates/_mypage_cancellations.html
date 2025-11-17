@@ -25,7 +25,12 @@
                             </strong>
                         </p>
                         <p>
-                            취소일: {{ payment.Refund_Date.strftime('%Y-%m-%d') }}
+                            취소일:
+                            {% if payment.Refund_Date %}
+                            {{ payment.Refund_Date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            (환불 처리 중)
+                            {% endif %}
                         </p>
                     {% else %}
                         <p>환불 정보를 찾을 수 없습니다.</p>

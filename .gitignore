@@ -4,7 +4,7 @@ __pycache__/
 venv/
 *.env
 .env
-
+.vs/
 # Secrets
 # (가장 중요) 실제 DB 접속 정보가 담긴 파일을 무시합니다.
 config.py
