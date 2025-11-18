@@ -403,7 +403,7 @@ def cancel_flight():
             # Determine if it's a round trip and which flight is being canceled
             if booking.Outbound_Flight_ID == flight_id and booking.Return_Flight_ID:
                 other_flight_id = booking.Return_Flight_ID
-            elif booking.Return_FLight_ID == flight_id and booking.Outbound_Flight_ID:
+            elif booking.Return_Flight_ID == flight_id and booking.Outbound_Flight_ID:
                 other_flight_id = booking.Outbound_Flight_ID
 
             if other_flight_id:
