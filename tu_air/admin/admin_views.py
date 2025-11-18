@@ -4,7 +4,7 @@
 from . import admin_bp
 from ..extensions import db
 # (!!! 신규: 필요한 모든 모델 임포트 !!!)
-from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability, Staff, Crew_Assignment, Booking, Passenger, Boarding_Pass, Passenger, Boarding_Pass
+from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability, Staff, Crew_Assignment, Booking, Passenger, Boarding_Pass, Passenger, Boarding_Pass, Maintenance_Record, Member
 from flask import render_template, redirect, url_for, session, g, flash, request
 from functools import wraps
 import datetime
@@ -46,6 +46,17 @@ def index():
     # (TODO: 'Pilot'이나 'HR' 등 다른 역할(Role)에 따른 분기)
     # elif g.user.Role == 'Pilot':
     #     return redirect(url_for('admin.flight_briefing'))
+    # --- [이 부분을 추가하세요] ---
+    elif g.user.Role == 'Engineer':
+        return redirect(url_for('admin.maintenance_dashboard'))
+
+    elif g.user.Role == 'HR':
+        return redirect(url_for('admin.hr_dashboard'))
+
+    # --- [이 부분을 추가하세요] ---
+    elif g.user.Role in ['Pilot', 'Co-Pilot', 'Cabin Crew']:
+        return redirect(url_for('admin.my_schedule'))
+    # --- [여기까지] ---
     
     # (기본 관리자 홈)
     return render_template('admin_index.html')
@@ -536,3 +547,258 @@ def flight_management():
     return render_template('admin_flight_management.html', 
                            flights=flights, 
                            search_filters=search_filters)
+
+
+@admin_bp.route('/maintenance', methods=['GET', 'POST'])
+@staff_login_required
+@role_required('Engineer')
+def maintenance_dashboard():
+    """
+    엔지니어용 정비 대시보드.
+    - POST: 새 정비 기록 생성
+    - GET: 정비 기록 필터링 및 조회
+    """
+    
+    # --- 1. POST (새 정비 기록 생성) ---
+    if request.method == 'POST':
+        try:
+            aircraft_id = request.form.get('aircraft_id')
+            maintenance_date_str = request.form.get('maintenance_date')
+            details = request.form.get('details')
+            
+            # (1-1) 유효성 검사
+            if not all([aircraft_id, maintenance_date_str, details]):
+                raise ValueError("항공기 ID, 정비 날짜, 정비 내역을 모두 입력해야 합니다.")
+            
+            if not Aircraft.query.get(aircraft_id):
+                raise ValueError(f"항공기 ID '{aircraft_id}'를 찾을 수 없습니다.")
+
+            maintenance_date = datetime.datetime.strptime(maintenance_date_str, '%Y-%m-%d').date()
+            
+            # (1-2) 새 기록 생성
+            new_record = Maintenance_Record(
+                Aircraft_ID=aircraft_id,
+                Staff_ID=g.user.Staff_ID, # 현재 로그인한 엔지니어
+                Date=maintenance_date,
+                Details=details
+            )
+            db.session.add(new_record)
+            db.session.commit()
+            flash('정비 기록이 성공적으로 등록되었습니다.', 'success')
+        
+        except (ValueError, Exception) as e:
+            db.session.rollback()
+            flash(f'오류: {str(e)}', 'error')
+        
+        return redirect(url_for('admin.maintenance_dashboard'))
+
+    # --- 2. GET (정비 기록 조회 및 필터링) ---
+    
+    # (2-1) 필터 조건 가져오기
+    search_filters = {
+        'aircraft_id': request.args.get('aircraft_id', '').strip(),
+        'staff_id': request.args.get('staff_id', '').strip(),
+        'start_date': request.args.get('start_date', '').strip(),
+        'end_date': request.args.get('end_date', '').strip()
+    }
+
+    # (2-2) 기본 쿼리 (Join을 통해 항공기 모델, 직원 이름도 가져옴)
+    query = db.session.query(Maintenance_Record).join(
+        Aircraft, Maintenance_Record.Aircraft_ID == Aircraft.Aircraft_ID
+    ).join(
+        Staff, Maintenance_Record.Staff_ID == Staff.Staff_ID
+    )
+
+    # (2-3) 필터 적용
+    if search_filters['aircraft_id']:
+        query = query.filter(Maintenance_Record.Aircraft_ID.ilike(f"%{search_filters['aircraft_id']}%"))
+    if search_filters['staff_id']:
+        query = query.filter(Maintenance_Record.Staff_ID == search_filters['staff_id'])
+    
+    try:
+        if search_filters['start_date']:
+            start_date_obj = datetime.datetime.strptime(search_filters['start_date'], '%Y-%m-%d').date()
+            query = query.filter(Maintenance_Record.Date >= start_date_obj)
+        if search_filters['end_date']:
+            end_date_obj = datetime.datetime.strptime(search_filters['end_date'], '%Y-%m-%d').date()
+            query = query.filter(Maintenance_Record.Date <= end_date_obj)
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)', 'error')
+        search_filters['start_date'] = ''
+        search_filters['end_date'] = ''
+
+    # (2-4) 쿼리 실행
+    records = query.order_by(Maintenance_Record.Date.desc()).all()
+    
+    # (2-5) 폼 내 Select Box를 채우기 위한 데이터
+    all_aircraft = Aircraft.query.order_by(Aircraft.Model).all()
+    all_engineers = Staff.query.filter_by(Role='Engineer').order_by(Staff.Name).all()
+
+    # (2-6) 템플릿 렌더링
+    return render_template('admin_maintenance_dashboard.html',
+                           records=records,
+                           search_filters=search_filters,
+                           all_aircraft=all_aircraft,
+                           all_engineers=all_engineers)
+
+# (admin_views.py 파일 맨 아래에 이 함수를 통째로 추가)
+
+@admin_bp.route('/hr', methods=['GET', 'POST'])
+@staff_login_required
+@role_required('HR')
+def hr_dashboard():
+    """
+    HR용 직원 관리 대시보드.
+    - POST (action='create'): 새 직원 등록
+    - POST (action='delete'): 기존 직원 삭제
+    - GET: 직원 목록 조회
+    """
+    
+    # --- 1. POST (직원 등록 또는 삭제) ---
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        # --- 1A. 새 직원 등록 ---
+        if action == 'create':
+            try:
+                staff_id = request.form.get('staff_id')
+                name = request.form.get('name')
+                passwd = request.form.get('passwd')
+                role = request.form.get('role')
+                department = request.form.get('department')
+                
+                # (유효성 검사)
+                if not all([staff_id, name, passwd, role, department]):
+                    raise ValueError("모든 필드를 입력해야 합니다.")
+                
+                # (ID 중복 검사: Staff 테이블과 Member 테이블 모두)
+                if Staff.query.get(staff_id) or Member.query.get(staff_id):
+                    raise ValueError(f"ID '{staff_id}'는 이미 사용 중입니다.")
+
+                # (새 직원 객체 생성 - 비밀번호는 평문 저장)
+                new_staff = Staff(
+                    Staff_ID=staff_id,
+                    Name=name,
+                    Passwd=passwd, 
+                    Role=role,
+                    Department=department
+                )
+                db.session.add(new_staff)
+                db.session.commit()
+                flash('새 직원이 성공적으로 등록되었습니다.', 'success')
+            
+            except (ValueError, Exception) as e:
+                db.session.rollback()
+                flash(f'직원 등록 오류: {str(e)}', 'error')
+        
+        # --- 1B. 직원 삭제 ---
+        elif action == 'delete':
+            staff_id_to_delete = request.form.get('staff_id_to_delete')
+            try:
+                if not staff_id_to_delete:
+                    raise ValueError("삭제할 직원 ID가 없습니다.")
+                
+                staff_to_delete = Staff.query.get(staff_id_to_delete)
+                if not staff_to_delete:
+                    raise ValueError(f"직원 ID '{staff_id_to_delete}'를 찾을 수 없습니다.")
+                
+                # (자신 삭제 방지)
+                if staff_to_delete.Staff_ID == g.user.Staff_ID:
+                    raise ValueError("현재 로그인된 본인 계정은 삭제할 수 없습니다.")
+
+                # [!!!] 핵심 제약 조건 검사 (요청사항) [!!!]
+                if staff_to_delete.assignments:
+                    raise ValueError(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})는 항공편에 배정되어 있어 삭제할 수 없습니다.")
+                
+                # (엔지니어의 경우, 정비 기록이 있어도 삭제 방지)
+                if staff_to_delete.maintenance_records:
+                    raise ValueError(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})는 정비 기록이 있어 삭제할 수 없습니다.")
+
+                # (제약 조건 통과 시 삭제)
+                db.session.delete(staff_to_delete)
+                db.session.commit()
+                flash(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})이(가) 삭제되었습니다.", 'success')
+            
+            except (ValueError, Exception) as e:
+                db.session.rollback()
+                flash(f'직원 삭제 오류: {str(e)}', 'error')
+        
+        return redirect(url_for('admin.hr_dashboard'))
+
+    # --- 2. GET (직원 목록 조회) ---
+    
+    # (2-1) 필터 조건 가져오기
+    search_filters = {
+        'staff_id': request.args.get('staff_id', '').strip(),
+        'name': request.args.get('name', '').strip(),
+        'role': request.args.get('role', '').strip(),
+        'department': request.args.get('department', '').strip(),
+    }
+
+    # (2-2) 기본 쿼리
+    query = Staff.query
+
+    # (2-3) 필터 적용
+    if search_filters['staff_id']:
+        query = query.filter(Staff.Staff_ID.ilike(f"%{search_filters['staff_id']}%"))
+    if search_filters['name']:
+        query = query.filter(Staff.Name.ilike(f"%{search_filters['name']}%"))
+    if search_filters['role']:
+        query = query.filter(Staff.Role == search_filters['role'])
+    if search_filters['department']:
+        query = query.filter(Staff.Department.ilike(f"%{search_filters['department']}%"))
+
+    # (2-4) 쿼리 실행
+    all_staff = query.order_by(Staff.Staff_ID).all()
+    
+    # (2-5) 템플릿 렌더링
+    return render_template('admin_hr_management.html',
+                           all_staff=all_staff,
+                           search_filters=search_filters,
+                           # (Role Enum 값을 템플릿 Select Box에 전달)
+                           staff_roles=Staff.Role.type.enums)
+
+# (admin_views.py 파일 맨 아래에 이 함수를 통째로 추가)
+
+@admin_bp.route('/my_schedule')
+@staff_login_required
+def my_schedule():
+    """
+    Pilot, Co-Pilot, Cabin Crew가 로그인했을 때
+    본인의 항공편 일정을 보여주는 페이지.
+    """
+    
+    # (1. 스케줄러가 아니면 접근 제한 - 이 3가지 역할만 허용)
+    if g.user.Role not in ['Pilot', 'Co-Pilot', 'Cabin Crew']:
+        flash('본인 일정 조회 권한이 없습니다.')
+        return redirect(url_for('admin.index'))
+        
+    try:
+        # (2. 오늘 날짜 기준으로, 앞으로의 일정만 조회)
+        today = datetime.date.today()
+        
+        # (3. Crew_Assignment 테이블에서 내 ID가 포함된 항공편(Flight) 목록 조회)
+        assignments = db.session.query(Flight).join(Crew_Assignment).filter(
+            Crew_Assignment.Staff_ID == g.user.Staff_ID,
+            Flight.Departure_Time >= today
+        ).order_by(Flight.Departure_Time).all()
+
+        # (4. Pilot_schedule.html 템플릿에서 사용하던 형식(schedule 딕셔너리)으로 가공)
+        schedule = {}
+        for flight in assignments:
+            month = flight.Departure_Time.strftime('%Y-%m')
+            day = flight.Departure_Time.strftime('%Y-%m-%d')
+            if month not in schedule:
+                schedule[month] = {}
+            if day not in schedule[month]:
+                schedule[month][day] = []
+            schedule[month][day].append(flight)
+        
+        # (5. 새 템플릿 렌더링)
+        return render_template('admin_my_schedule.html', 
+                               staff=g.user, 
+                               schedule=schedule)
+                               
+    except Exception as e:
+        flash(f"스케줄을 불러오는 중 오류가 발생했습니다: {e}", "error")
+        return redirect(url_for('admin.index'))

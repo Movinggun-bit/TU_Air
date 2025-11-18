@@ -45,6 +45,8 @@ class Staff(db.Model):
     Department = db.Column(db.String(50), nullable=True)
     
     assignments = db.relationship('Crew_Assignment', back_populates='staff')
+    # --- [이 줄을 추가하세요] ---
+    maintenance_records = db.relationship('Maintenance_Record', back_populates='staff', lazy=True)
 
     def __repr__(self):
         return f"<Staff {self.Staff_ID} ({self.Name})>"
@@ -171,7 +173,9 @@ class Aircraft(db.Model):
     # (관계: 1대의 항공기는 N개의 좌석을 가짐)
     seats = db.relationship('Seat', back_populates='aircraft')
     # [!!!] (신규) 2. Aircraft(1)가 Flight(N)를 가짐 [!!!]
-    flights = db.relationship('Flight', back_populates='aircraft')
+    flights = db.relationship('Flight', back_populates='aircraft')    
+    # --- [이 줄을 추가하세요] ---
+    maintenance_records = db.relationship('Maintenance_Record', back_populates='aircraft', lazy=True)
 
 # --- [신규] Seat 모델 (Aircraft와 관계 설정) ---
 class Seat(db.Model):
@@ -214,3 +218,17 @@ class Crew_Assignment(db.Model):
 
     flight = db.relationship('Flight', back_populates='crew_assignments')
     staff = db.relationship('Staff', back_populates='assignments')
+
+class Maintenance_Record(db.Model):
+    __tablename__ = 'maintenance_record'
+    Record_ID = db.Column(db.INT, primary_key=True, autoincrement=True)
+    Aircraft_ID = db.Column(db.String(10), db.ForeignKey('aircraft.Aircraft_ID'), nullable=False)
+    Staff_ID = db.Column(db.String(15), db.ForeignKey('staff.Staff_ID'), nullable=False)
+    Date = db.Column(db.DATE, nullable=False)
+    Details = db.Column(db.TEXT, nullable=True)
+
+    # --- [관계 설정] ---
+    # Maintenance_Record(N)가 Aircraft(1)에 속합니다.
+    aircraft = db.relationship('Aircraft', back_populates='maintenance_records')
+    # Maintenance_Record(N)가 Staff(1)에 속합니다.
+    staff = db.relationship('Staff', back_populates='maintenance_records')

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ staff.Name }} 상세 일정 - 관리자{% endblock %}
+
+{% block head_style %}
+{# 스케줄러가 사용하던 CSS를 그대로 재사용합니다 #}
+<link rel="stylesheet" href="{{ url_for('main.static', filename='css/modules/15_page_admin.css') }}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="aircraft-schedule-container">
+    <div class="aircraft-schedule-header">
+        {# (제목을 로그인한 본인 이름으로 변경) #}
+        <h1>{{ staff.Name }}님 상세 일정</h1>
+        <div class="aircraft-info">
+            <span class="aircraft-info-item">
+                <strong>직원 ID:</strong> {{ staff.Staff_ID }}
+            </span>
+            <span class="aircraft-info-item">
+                <strong>역할:</strong> {{ staff.Role }}
+            </span>
+            <span class="aircraft-info-item">
+                <strong>부서:</strong> {{ staff.Department }}
+            </span>
+        </div>
+    </div>
+
+    {% if schedule %}
+    <div class="month-selector">
+        {% for month in schedule.keys()|sort %}
+        <button class="month-tab {% if loop.first %}active{% endif %}"
+                data-month="{{ month }}">
+            {{ month }}
+        </button>
+        {% endfor %}
+    </div>
+
+    {% for month, days in schedule.items()|sort %}
+    <div class="schedule-month-content {% if loop.first %}active{% endif %}"
+         data-month="{{ month }}">
+        {% for day, flights in days.items()|sort %}
+        <div class="schedule-day-group">
+            <div class="schedule-day-header">
+                <div class="schedule-day-date">
+                    <span>{{ day }}</span>
+                    <span class="schedule-day-count">{{ flights|length }}편</span>
+                </div>
+            </div>
+            <div class="schedule-day-body">
+                <div class="flight-list">
+                    {% for flight in flights %}
+                    <div class="flight-item">
+                        <div class="flight-info">
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">편명</span>
+                                <span class="flight-info-value flight-no">{{ flight.Flight_No }}</span>
+                            </div>
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">출발지</span>
+                                <span class="flight-info-value">{{ flight.Departure_Airport_Code }}</span>
+                            </div>
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">도착지</span>
+                                <span class="flight-info-value">{{ flight.Arrival_Airport_Code }}</span>
+                            </div>
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">출발 시간</span>
+                                <span class="flight-info-value time">{{ flight.Departure_Time.strftime('%H:%M') }}</span>
+                            </div>
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">도착 시간</span>
+                                <span class="flight-info-value time">{{ flight.Arrival_Time.strftime('%H:%M') }}</span>
+                            </div>
+                            <div class="flight-info-item">
+                                <span class="flight-info-label">항공기</span>
+                                <span class="flight-info-value">{{ flight.Aircraft_ID }}</span>
+                            </div>
+                        </div>
+                        <span class="flight-status {{ flight.Flight_Status.lower().replace('_', '-') }}">
+                            {{ flight.Flight_Status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="schedule-empty">
+        <div class="schedule-empty-icon">📅</div>
+        <p>배정된 항공편 일정이 없습니다.</p>
+    </div>
+    {% endif %}
+
+    {# (이 페이지가 메인 페이지이므로 '뒤로가기' 버튼 제거) #}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{# (월별 탭 JS는 Pilot_schedule.html과 동일하게 사용) #}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const monthTabs = document.querySelectorAll('.month-tab');
+        const monthContents = document.querySelectorAll('.schedule-month-content');
+
+        monthTabs.forEach(tab => {
+            tab.addEventListener('click', function () {
+                const targetMonth = this.getAttribute('data-month');
+
+                monthTabs.forEach(t => t.classList.remove('active'));
+                monthContents.forEach(c => c.classList.remove('active'));
+
+                this.classList.add('active');
+                document.querySelector(`.schedule-month-content[data-month="${targetMonth}"]`).classList.add('active');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -104,6 +104,16 @@
                             <td>{{ flight.Arrival_Time.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>
                                 <span class="status-{{ flight.Flight_Status.lower() }}">{{ flight.Flight_Status }}</span>
+
+                                {# --- [ 이 부분을 추가하세요 ] --- #}
+                                {% if (flight.Flight_Status == 'Delayed' or flight.Flight_Status == 'Canceled') and flight.Status_Reason %}
+                                <br>
+                                {# (상태에 따라 지연은 주황색, 취소는 빨간색으로 표시) #}
+                                <small style="font-size: 12px; font-weight: 500; color: {{ '#ffc107' if flight.Flight_Status == 'Delayed' else '#dc3545' }};">
+                                    ({{ flight.Status_Reason }})
+                                </small>
+                                {% endif %}
+                                {# --- [ 여기까지 ] --- #}
                             </td>
                             <td>
                                 <button type="button" class="btn-action btn-delay" data-flight-id="{{ flight.Flight_ID }}" data-current-dep-time="{{ flight.Departure_Time.strftime('%Y-%m-%dT%H:%M') }}" data-current-arr-time="{{ flight.Arrival_Time.strftime('%Y-%m-%dT%H:%M') }}" {% if flight.Flight_Status == 'Canceled' %}disabled{% endif %}>지연</button>
