@@ -52,6 +52,11 @@ def index():
 
     elif g.user.Role == 'HR':
         return redirect(url_for('admin.hr_dashboard'))
+
+    # --- [이 부분을 추가하세요] ---
+    elif g.user.Role in ['Pilot', 'Co-Pilot', 'Cabin Crew']:
+        return redirect(url_for('admin.my_schedule'))
+    # --- [여기까지] ---
     
     # (기본 관리자 홈)
     return render_template('admin_index.html')
@@ -752,3 +757,48 @@ def hr_dashboard():
                            search_filters=search_filters,
                            # (Role Enum 값을 템플릿 Select Box에 전달)
                            staff_roles=Staff.Role.type.enums)
+
+# (admin_views.py 파일 맨 아래에 이 함수를 통째로 추가)
+
+@admin_bp.route('/my_schedule')
+@staff_login_required
+def my_schedule():
+    """
+    Pilot, Co-Pilot, Cabin Crew가 로그인했을 때
+    본인의 항공편 일정을 보여주는 페이지.
+    """
+    
+    # (1. 스케줄러가 아니면 접근 제한 - 이 3가지 역할만 허용)
+    if g.user.Role not in ['Pilot', 'Co-Pilot', 'Cabin Crew']:
+        flash('본인 일정 조회 권한이 없습니다.')
+        return redirect(url_for('admin.index'))
+        
+    try:
+        # (2. 오늘 날짜 기준으로, 앞으로의 일정만 조회)
+        today = datetime.date.today()
+        
+        # (3. Crew_Assignment 테이블에서 내 ID가 포함된 항공편(Flight) 목록 조회)
+        assignments = db.session.query(Flight).join(Crew_Assignment).filter(
+            Crew_Assignment.Staff_ID == g.user.Staff_ID,
+            Flight.Departure_Time >= today
+        ).order_by(Flight.Departure_Time).all()
+
+        # (4. Pilot_schedule.html 템플릿에서 사용하던 형식(schedule 딕셔너리)으로 가공)
+        schedule = {}
+        for flight in assignments:
+            month = flight.Departure_Time.strftime('%Y-%m')
+            day = flight.Departure_Time.strftime('%Y-%m-%d')
+            if month not in schedule:
+                schedule[month] = {}
+            if day not in schedule[month]:
+                schedule[month][day] = []
+            schedule[month][day].append(flight)
+        
+        # (5. 새 템플릿 렌더링)
+        return render_template('admin_my_schedule.html', 
+                               staff=g.user, 
+                               schedule=schedule)
+                               
+    except Exception as e:
+        flash(f"스케줄을 불러오는 중 오류가 발생했습니다: {e}", "error")
+        return redirect(url_for('admin.index'))
