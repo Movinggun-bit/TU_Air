@@ -1,0 +1,145 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}정비 기록 관리 - TU Air (Admin){% endblock %}
+
+{% block head_style %}
+{# 스케줄러가 사용하던 CSS를 그대로 재사용합니다 #}
+<link rel="stylesheet" href="{{ url_for('main.static', filename='css/modules/15_page_admin.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('main.static', filename='css/modules/16_page_flight_management.css') }}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1 class="admin-title">정비 기록 관리 (Engineer)</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="admin-filter-box" style="border-color: #007bff;">
+        <h3 style="margin-top: 0; font-size: 20px;">새 정비 기록 작성</h3>
+        <form method="POST" action="{{ url_for('admin.maintenance_dashboard') }}" class="admin-filter-form">
+            <div class="filter-inputs-wrapper">
+                <div class="filter-group" style="flex: 2;">
+                    <label for="aircraft_id_create">항공기 선택 *</label>
+                    <select id="aircraft_id_create" name="aircraft_id" class="form-control" required>
+                        <option value="" disabled selected>정비할 항공기를 선택하세요</option>
+                        {% for ac in all_aircraft %}
+                        <option value="{{ ac.Aircraft_ID }}">{{ ac.Model }} (ID: {{ ac.Aircraft_ID }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="maintenance_date">정비 날짜 *</label>
+                    <input type="text" id="maintenance_date" name="maintenance_date" class="form-input-register flatpickr-date-only" 
+                           placeholder="YYYY-MM-DD" required>
+                </div>
+                <div class="filter-group" style="flex: 3;">
+                    <label for="details">정비 내역 *</label>
+                    <input type="text" id="details" name="details" class="form-input-register" 
+                           placeholder="정비 내역을 입력하세요 (예: 엔진 오일 교환)" required>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn-primary">기록 등록</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-filter-box" style="margin-top: 30px;">
+        <h3 style="margin-top: 0; font-size: 20px;">정비 기록 조회</h3>
+        <form method="GET" action="{{ url_for('admin.maintenance_dashboard') }}" class="admin-filter-form">
+            <div class="filter-inputs-wrapper">
+                <div class="filter-group">
+                    <label for="aircraft_id_filter">항공기 ID</label>
+                    <input type="text" id="aircraft_id_filter" name="aircraft_id" 
+                           value="{{ search_filters.get('aircraft_id', '') }}" placeholder="예: BO-773ER">
+                </div>
+                <div class="filter-group">
+                    <label for="staff_id_filter">정비사</label>
+                    <select id="staff_id_filter" name="staff_id" class="form-control">
+                        <option value="">모든 정비사</option>
+                        {% for eng in all_engineers %}
+                        <option value="{{ eng.Staff_ID }}" 
+                                {% if search_filters.get('staff_id') == eng.Staff_ID %}selected{% endif %}>
+                            {{ eng.Name }} ({{ eng.Staff_ID }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="start_date">기간 (시작)</label>
+                    <input type="text" id="start_date" name="start_date" class="flatpickr-date-only" 
+                           value="{{ search_filters.get('start_date', '') }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="filter-group">
+                    <label for="end_date">기간 (종료)</label>
+                    <input type="text" id="end_date" name="end_date" class="flatpickr-date-only" 
+                           value="{{ search_filters.get('end_date', '') }}" placeholder="YYYY-MM-DD">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn-primary">검색</button>
+                <a href="{{ url_for('admin.maintenance_dashboard') }}" class="btn-secondary">초기화</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-content-box">
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Record ID</th>
+                        <th>정비 날짜</th>
+                        <th>항공기 ID</th>
+                        <th>항공기 모델</th>
+                        <th>정비사</th>
+                        <th>정비 내역</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if records %}
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.Record_ID }}</td>
+                            <td>{{ record.Date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ record.Aircraft_ID }}</td>
+                            <td>{{ record.aircraft.Model }}</td>
+                            <td>{{ record.staff.Name }} ({{ record.Staff_ID }})</td>
+                            <td style="white-space: pre-wrap; min-width: 300px;">{{ record.Details }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="no-data">
+                            {% if search_filters.aircraft_id or search_filters.staff_id or search_filters.start_date or search_filters.end_date %}
+                                검색 조건에 맞는 정비 기록이 없습니다.
+                            {% else %}
+                                표시할 정비 기록이 없습니다.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Flatpickr 초기화 (날짜만 선택)
+    flatpickr(".flatpickr-date-only", {
+        dateFormat: "Y-m-d",
+        locale: "ko"
+    });
+});
+</script>
+{% endblock %}
