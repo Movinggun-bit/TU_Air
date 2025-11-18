@@ -4,7 +4,7 @@
 from . import admin_bp
 from ..extensions import db
 # (!!! 신규: 필요한 모든 모델 임포트 !!!)
-from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability, Staff, Crew_Assignment, Booking, Passenger, Boarding_Pass, Passenger, Boarding_Pass, Maintenance_Record
+from ..models import Aircraft, Airport, Flight, Flight_Price, Flight_Seat_Availability, Staff, Crew_Assignment, Booking, Passenger, Boarding_Pass, Passenger, Boarding_Pass, Maintenance_Record, Member
 from flask import render_template, redirect, url_for, session, g, flash, request
 from functools import wraps
 import datetime
@@ -49,6 +49,9 @@ def index():
     # --- [이 부분을 추가하세요] ---
     elif g.user.Role == 'Engineer':
         return redirect(url_for('admin.maintenance_dashboard'))
+
+    elif g.user.Role == 'HR':
+        return redirect(url_for('admin.hr_dashboard'))
     
     # (기본 관리자 홈)
     return render_template('admin_index.html')
@@ -632,3 +635,120 @@ def maintenance_dashboard():
                            search_filters=search_filters,
                            all_aircraft=all_aircraft,
                            all_engineers=all_engineers)
+
+# (admin_views.py 파일 맨 아래에 이 함수를 통째로 추가)
+
+@admin_bp.route('/hr', methods=['GET', 'POST'])
+@staff_login_required
+@role_required('HR')
+def hr_dashboard():
+    """
+    HR용 직원 관리 대시보드.
+    - POST (action='create'): 새 직원 등록
+    - POST (action='delete'): 기존 직원 삭제
+    - GET: 직원 목록 조회
+    """
+    
+    # --- 1. POST (직원 등록 또는 삭제) ---
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        # --- 1A. 새 직원 등록 ---
+        if action == 'create':
+            try:
+                staff_id = request.form.get('staff_id')
+                name = request.form.get('name')
+                passwd = request.form.get('passwd')
+                role = request.form.get('role')
+                department = request.form.get('department')
+                
+                # (유효성 검사)
+                if not all([staff_id, name, passwd, role, department]):
+                    raise ValueError("모든 필드를 입력해야 합니다.")
+                
+                # (ID 중복 검사: Staff 테이블과 Member 테이블 모두)
+                if Staff.query.get(staff_id) or Member.query.get(staff_id):
+                    raise ValueError(f"ID '{staff_id}'는 이미 사용 중입니다.")
+
+                # (새 직원 객체 생성 - 비밀번호는 평문 저장)
+                new_staff = Staff(
+                    Staff_ID=staff_id,
+                    Name=name,
+                    Passwd=passwd, 
+                    Role=role,
+                    Department=department
+                )
+                db.session.add(new_staff)
+                db.session.commit()
+                flash('새 직원이 성공적으로 등록되었습니다.', 'success')
+            
+            except (ValueError, Exception) as e:
+                db.session.rollback()
+                flash(f'직원 등록 오류: {str(e)}', 'error')
+        
+        # --- 1B. 직원 삭제 ---
+        elif action == 'delete':
+            staff_id_to_delete = request.form.get('staff_id_to_delete')
+            try:
+                if not staff_id_to_delete:
+                    raise ValueError("삭제할 직원 ID가 없습니다.")
+                
+                staff_to_delete = Staff.query.get(staff_id_to_delete)
+                if not staff_to_delete:
+                    raise ValueError(f"직원 ID '{staff_id_to_delete}'를 찾을 수 없습니다.")
+                
+                # (자신 삭제 방지)
+                if staff_to_delete.Staff_ID == g.user.Staff_ID:
+                    raise ValueError("현재 로그인된 본인 계정은 삭제할 수 없습니다.")
+
+                # [!!!] 핵심 제약 조건 검사 (요청사항) [!!!]
+                if staff_to_delete.assignments:
+                    raise ValueError(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})는 항공편에 배정되어 있어 삭제할 수 없습니다.")
+                
+                # (엔지니어의 경우, 정비 기록이 있어도 삭제 방지)
+                if staff_to_delete.maintenance_records:
+                    raise ValueError(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})는 정비 기록이 있어 삭제할 수 없습니다.")
+
+                # (제약 조건 통과 시 삭제)
+                db.session.delete(staff_to_delete)
+                db.session.commit()
+                flash(f"직원 '{staff_to_delete.Name}'({staff_id_to_delete})이(가) 삭제되었습니다.", 'success')
+            
+            except (ValueError, Exception) as e:
+                db.session.rollback()
+                flash(f'직원 삭제 오류: {str(e)}', 'error')
+        
+        return redirect(url_for('admin.hr_dashboard'))
+
+    # --- 2. GET (직원 목록 조회) ---
+    
+    # (2-1) 필터 조건 가져오기
+    search_filters = {
+        'staff_id': request.args.get('staff_id', '').strip(),
+        'name': request.args.get('name', '').strip(),
+        'role': request.args.get('role', '').strip(),
+        'department': request.args.get('department', '').strip(),
+    }
+
+    # (2-2) 기본 쿼리
+    query = Staff.query
+
+    # (2-3) 필터 적용
+    if search_filters['staff_id']:
+        query = query.filter(Staff.Staff_ID.ilike(f"%{search_filters['staff_id']}%"))
+    if search_filters['name']:
+        query = query.filter(Staff.Name.ilike(f"%{search_filters['name']}%"))
+    if search_filters['role']:
+        query = query.filter(Staff.Role == search_filters['role'])
+    if search_filters['department']:
+        query = query.filter(Staff.Department.ilike(f"%{search_filters['department']}%"))
+
+    # (2-4) 쿼리 실행
+    all_staff = query.order_by(Staff.Staff_ID).all()
+    
+    # (2-5) 템플릿 렌더링
+    return render_template('admin_hr_management.html',
+                           all_staff=all_staff,
+                           search_filters=search_filters,
+                           # (Role Enum 값을 템플릿 Select Box에 전달)
+                           staff_roles=Staff.Role.type.enums)
